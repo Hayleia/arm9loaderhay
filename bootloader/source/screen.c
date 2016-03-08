@@ -3,32 +3,39 @@
 
 //got code for disabeling from CakesForeveryWan
 volatile u32 *a11_entry = (volatile u32 *)0x1FFFFFF8; 
-
+bool screenInitialized=false;
 void screenInit()
 {
-	*a11_entry = (u32)enable_lcd;  
-	for(volatile unsigned int i = 0; i < 0xF; ++i); 
-	i2cWriteRegister(3, 0x22, 0x2A); // 0x2A -> boot into firm with no backlight 
-    
-    *(volatile uint32_t*)0x80FFFC0 = 0x18300000;    // framebuffer 1 top left  
-    *(volatile uint32_t*)0x80FFFC4 = 0x18300000;    // framebuffer 2 top left  
-    *(volatile uint32_t*)0x80FFFC8 = 0x18300000;    // framebuffer 1 top right  
-    *(volatile uint32_t*)0x80FFFCC = 0x18300000;    // framebuffer 2 top right  
-    *(volatile uint32_t*)0x80FFFD0 = 0x18346500;    // framebuffer 1 bottom  
-    *(volatile uint32_t*)0x80FFFD4 = 0x18346500;    // framebuffer 2 bottom  
-    *(volatile uint32_t*)0x80FFFD8 = 1;    // framebuffer select top  
-    *(volatile uint32_t*)0x80FFFDC = 1;    // framebuffer select bottom  
+    if(*((u8*)0x101401C0) == 0x0&&screenInitialized==false)
+    {    
+    	*a11_entry = (u32)enable_lcd;  
+    	for(volatile unsigned int i = 0; i < 0xF; ++i); 
+    	i2cWriteRegister(3, 0x22, 0x2A); // 0x2A -> boot into firm with no backlight 
+        
+        *(volatile uint32_t*)0x80FFFC0 = 0x18300000;    // framebuffer 1 top left  
+        *(volatile uint32_t*)0x80FFFC4 = 0x18300000;    // framebuffer 2 top left  
+        *(volatile uint32_t*)0x80FFFC8 = 0x18300000;    // framebuffer 1 top right  
+        *(volatile uint32_t*)0x80FFFCC = 0x18300000;    // framebuffer 2 top right  
+        *(volatile uint32_t*)0x80FFFD0 = 0x18346500;    // framebuffer 1 bottom  
+        *(volatile uint32_t*)0x80FFFD4 = 0x18346500;    // framebuffer 2 bottom  
+        *(volatile uint32_t*)0x80FFFD8 = 1;    // framebuffer select top  
+        *(volatile uint32_t*)0x80FFFDC = 1;    // framebuffer select bottom  
 
-    //cakehax  
-    *(u32*)0x23FFFE00 = 0x18300000;  
-    *(u32*)0x23FFFE04 = 0x18300000;  
-    *(u32*)0x23FFFE08 = 0x18346500;  
+        //cakehax  
+        *(u32*)0x23FFFE00 = 0x18300000;  
+        *(u32*)0x23FFFE04 = 0x18300000;  
+        *(u32*)0x23FFFE08 = 0x18346500;  
+        screenInitialized=true;
+    }
 }
 
 void screenDeinit()
 {
-    *a11_entry = (u32)disable_lcds;  
-    for(volatile unsigned int i = 0; i < 0xF; ++i); 
+    if(*((u8*)0x101401C0) == 0x0||screenInitialized==true)
+    {
+        *a11_entry = (u32)disable_lcds;  
+        for(volatile unsigned int i = 0; i < 0xF; ++i); 
+    }
 }
 
 void __attribute__((naked)) disable_lcds()  

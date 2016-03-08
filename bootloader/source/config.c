@@ -96,14 +96,14 @@ int numberToInt(const char* value)
 
 int handler(void *user, const char *section, const char *name, const char *value)
 {
-	configuration *pconfig = (configuration *) user;
-	if (MATCH(pconfig->section, "path")) {
-		strcpy (pconfig->path,value);
-	} else if (MATCH(pconfig->section, "delay")) {
-		pconfig->delay = myAtoi(value);
-	} else if (MATCH(pconfig->section, "payload")) {
-		pconfig->payload = myAtoi(value);
-	} else if (MATCH(pconfig->section, "offset")) {
+    configuration *pconfig = (configuration *) user;
+    if (MATCH(pconfig->section, "path")) {
+        strcpy (pconfig->path,value);
+    } else if (MATCH(pconfig->section, "delay")) {
+        pconfig->splashDelay = myAtoi(value);
+    } else if (MATCH(pconfig->section, "payload")) {
+        pconfig->payload = myAtoi(value);
+    } else if (MATCH(pconfig->section, "offset")) {
         pconfig->offset = numberToInt(value);
     } else if (MATCH(pconfig->section, "splash")) { 
         pconfig->splash = myAtoi(value);
@@ -112,5 +112,24 @@ int handler(void *user, const char *section, const char *name, const char *value
     } else if (MATCH(pconfig->section, "screenEnabled")) {
         pconfig->screenEnabled = myAtoi(value);
     }
-	return 1;
+    return 1;
+}
+
+int handlerLoaderConfiguration(void *user, const char *section, const char *name, const char *value)
+{
+    loaderConfiguration *pconfig = (configuration *) user;
+    if (MATCH(pconfig->section, "key_delay")) {
+        pconfig->keyDelay = myAtoi(value);
+    }else if (MATCH(pconfig->section, "boot_splash")) { 
+        pconfig->bootsplash = myAtoi(value);
+    } else if (MATCH(pconfig->section, "boot_splash_image")) { 
+        strcpy (pconfig->bootsplash_image,value); 
+    } else if (MATCH(pconfig->section, "fileLog")) {
+        pconfig->fileLog = myAtoi(value);
+    } else if (MATCH(pconfig->section, "screenLog")) {
+        pconfig->screenLog = myAtoi(value);
+    } else if (MATCH(pconfig->section, "screenEnabled")) {
+        pconfig->screenEnabled = myAtoi(value);
+    }
+    return 1;
 }

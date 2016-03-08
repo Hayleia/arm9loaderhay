@@ -13,29 +13,55 @@
 #define LOGNAME_BACKUP "/arm9bootloader.log"
 
 static FIL logFile;
-bool logFileOpened=false;
+bool fileLoggingEnabled		= false;
+bool screenLoggingEnabled	= false;
 
-int initLog()
+int initLog(bool _fileLoggingEnabled, bool _screenLoggingEnabled)
 {
-	if (f_open(&logFile, LOGNAME, FA_READ | FA_WRITE | FA_CREATE_ALWAYS ) != FR_OK)
-    {
-    	if (f_open(&logFile, LOGNAME_BACKUP, FA_READ | FA_WRITE | FA_CREATE_ALWAYS ) != FR_OK)
-    		shutdown();
-    }
-    logFileOpened=true;
-    f_sync (&logFile);            
-	f_puts ("opened logfile\n", &logFile);
-    f_sync (&logFile);  
+	screenLoggingEnabled = _screenLoggingEnabled;
+	if(_fileLoggingEnabled)
+		openLogFile();
     
     return 0;
 }
 
+void openLogFile()
+{	
+	if (f_open(&logFile, LOGNAME, FA_READ | FA_WRITE | FA_CREATE_ALWAYS ) != FR_OK)
+    {
+    	if (f_open(&logFile, LOGNAME_BACKUP, FA_READ | FA_WRITE | FA_CREATE_ALWAYS ) != FR_OK)
+    		return;
+    }           
+	f_puts ("opened logfile\n", &logFile);
+    f_sync (&logFile);  
+    fileLoggingEnabled=true;
+}
+
+
 void closeLogFile()
 {	
-	if(logFileOpened==true)
+	if(fileLoggingEnabled==true)
 	{
 		f_close(&logFile);
-		logFileOpened=false;
+		fileLoggingEnabled=false;
+	}
+}
+
+void logToFile(char *msg)
+{
+	if(fileLoggingEnabled)
+	{
+	    f_puts (msg, &logFile);
+	    f_putc ('\n', &logFile);
+	    f_sync (&logFile);
+	}
+}
+
+void logToScreen(char *msg)
+{
+	if(screenLoggingEnabled)
+	{
+		drawDebug(msg);
 	}
 }
 
@@ -48,31 +74,23 @@ void debug(const char *format, ...)
     vsnprintf(str, 256, format, va);
     va_end(va);
 
-	if(logFileOpened)
-	{
-	    f_puts (str, &logFile);
-	    f_putc ('\n', &logFile);
-	    f_sync (&logFile);
-	}
-	drawDebug(str);
+    logToFile(str);
+    logToScreen(str);
 }
 
 void panic(const char *format, ...)
 {
 	char str[256];
     va_list va;
+    screenLoggingEnabled=true;
 
     va_start(va, format);
     vsnprintf(str, 256, format, va);
     va_end(va);
 
-	if(logFileOpened)
-	{
-		debug("ERROR:");
-    	debug(str);
-    }
-	drawDebug(str);
-	drawDebug("Press any key to shutdown");
+
+	debug("ERROR: %s",str);
+    logToScreen("Press any key to shutdown");
 	InputWait();
     shutdown();
 }
