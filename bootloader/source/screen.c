@@ -1,9 +1,20 @@
 #include "screen.h"
 #include "i2c.h"
 
+#define DEFAULT_BRIGHTNESS 0x39
+#define FB_TOP_LEFT 0x18300000
+#define FB_TOP_RIGHT 0x18300000
+#define FB_BOTTOM 0x18346500
+
 //got code for disabeling from CakesForeveryWan
-volatile u32 *a11_entry = (volatile u32 *)0x1FFFFFF8; 
+volatile u32 *a11_entry = (volatile u32 *)0x1FFFFFF8;
+volatile u32 brightness = DEFAULT_BRIGHTNESS; 
 bool screenInitialized=false;
+
+void setStartBrightness(u32 _brightness)
+{
+    brightness=_brightness;
+}
 void screenInit()
 {
     if(*((u8*)0x101401C0) == 0x0&&screenInitialized==false)
@@ -53,8 +64,8 @@ void __attribute__((naked)) disable_lcds()
 void regSet();
 void __attribute__ ((naked)) enable_lcd()
 {
-    //__asm__ ("ldr r0,=0x1FFF4D80\n\t mov sp, r0");
-	regSet();
+    //__asm__ ("ldr r0,=_stack\n\t mov sp, r0");
+    regSet();
 }
 
 void regSet()
@@ -157,10 +168,10 @@ void regSet()
     *((volatile u32*)0x10202a04) = 0x00000000; // color fill disable
     *((volatile u32*)0x1020200C) &= 0xFFFEFFFE;// wtf register
    
-    *((volatile u32*)0x10202240) = 0xFF;
+    *((volatile u32*)0x10202240) = brightness;
     *((volatile u32*)0x10202244) = 0x1023E;
    
-    *((volatile u32*)0x10202A40) = 0xFF;
+    *((volatile u32*)0x10202A40) = brightness;
     *((volatile u32*)0x10202A44) = 0x1023E;
   
     // After hm call cmd 0x00160042 to acquire rights
@@ -219,13 +230,13 @@ void regSet()
     *((volatile u32*)0x1040059C) = 0x00000000;
     //(122860 log)
    
-    *((volatile u32*)0x10400468) = 0x18300000;
-    *((volatile u32*)0x1040046c) = 0x18300000;
-    *((volatile u32*)0x10400494) = 0x18300000;
-    *((volatile u32*)0x10400498) = 0x18300000;
+    *((volatile u32*)0x10400468) = FB_TOP_LEFT;
+    *((volatile u32*)0x1040046c) = FB_TOP_LEFT;
+    *((volatile u32*)0x10400494) = FB_TOP_RIGHT;
+    *((volatile u32*)0x10400498) = FB_TOP_RIGHT;
    
-    *((volatile u32*)0x10400568) = 0x18300000 + 0x46500;
-    *((volatile u32*)0x1040056c) = 0x18300000 + 0x46500;
+    *((volatile u32*)0x10400568) = FB_BOTTOM;
+    *((volatile u32*)0x1040056c) = FB_BOTTOM;
    
     *((volatile u32*)0x10400478) = 0x00000001;
     *((volatile u32*)0x10400578) = 0x00000001;

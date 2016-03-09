@@ -130,6 +130,8 @@ int handlerLoaderConfiguration(void *user, const char *section, const char *name
         pconfig->screenLog = myAtoi(value);
     } else if (MATCH(pconfig->section, "screenEnabled")) {
         pconfig->screenEnabled = myAtoi(value);
+    } else if (MATCH(pconfig->section, "screenBrightness")) {
+        pconfig->screenBrightness = numberToInt(value);
     }
     return 1;
 }

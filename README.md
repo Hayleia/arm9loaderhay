@@ -56,6 +56,8 @@ This section includes some BootCTR9 only configurations:
     * This is the same as fileLog, but the log is showen on the bottom screen, instead of written to a file
 * screenEnabled
     * This configures if the screen should be enabled directly at boot
+* screenBrightness
+    * This configures the brightness that us used for screen initialisation
 
 
 ## How do I update it?

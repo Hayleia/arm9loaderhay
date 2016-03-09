@@ -24,8 +24,9 @@
 #define DEFAULT_SCREEN_LOADER	1 /* 0 - use payloadConfiguration in the end, 1 - screen init at start */
 #define DEFAULT_LOG_FILE 		0
 #define DEFAULT_LOG_SCREEN 		0
-#define DEFAULT_SPLASH 			0 /* 0 - disabled, 1 - splash screen, 2 - asciiSplash */ 
-#define DEFAULT_SPLASH_IMAGE 	{0} 
+#define DEFAULT_BOOTSPLASH 		0 /* 0 - disabled, 1 - splash screen, 2 - asciiSplash */ 
+#define DEFAULT_BOOTSPLASH_IMAGE {0} 
+#define DEFAULT_BRIGHTNESS		0xFF
 
 #define INI_FILE 			"/arm9loaderhax/boot_config.ini"
 #define INI_FILE_BOOTCTR 	"/boot_config.ini"
@@ -85,7 +86,7 @@ int main() {
 	configuration app =  {
 	        .section = DEFAULT_SECTION,
 	        .path = DEFAULT_PATH,
-	        .splashDelay = DEFAULT_KEYDELAY,
+	        .splashDelay = DEFAULT_SPLASHDELAY,
 	        .payload = DEFAULT_PAYLOAD,
 	        .offset = DEFAULT_OFFSET,
 	        .splash = DEFAULT_SPLASH, 
@@ -94,12 +95,13 @@ int main() {
     };
     loaderConfiguration loader =  {
 	        .section = LOADER_SECTION,
-	        .keyDelay = DEFAULT_SPLASHDELAY,
-	        .bootsplash = DEFAULT_SPLASH, 
-            .bootsplash_image = DEFAULT_SPLASH_IMAGE,
+	        .keyDelay = DEFAULT_KEYDELAY,
+	        .bootsplash = DEFAULT_BOOTSPLASH, 
+            .bootsplash_image = DEFAULT_BOOTSPLASH_IMAGE,
             .fileLog = DEFAULT_LOG_FILE,
             .screenLog = DEFAULT_LOG_SCREEN,
 	        .screenEnabled = DEFAULT_SCREEN,
+	        .screenBrightness = DEFAULT_BRIGHTNESS,
     };
 	FATFS fs;
 	FIL payload;
@@ -108,6 +110,7 @@ int main() {
 	{
 		iniparse(INI_FILE,handlerLoaderConfiguration,&loader);
     	initLog(loader.fileLog, loader.screenLog);
+		setStartBrightness(loader.screenBrightness);
     	initScreen(loader.screenEnabled);
 
     	if(loader.screenEnabled)

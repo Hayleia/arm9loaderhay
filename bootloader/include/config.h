@@ -25,6 +25,7 @@ typedef struct {
     bool fileLog;
     bool screenLog;
     unsigned int screenEnabled;
+    unsigned int screenBrightness;
 } loaderConfiguration;
 
 
