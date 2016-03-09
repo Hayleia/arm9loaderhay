@@ -44,6 +44,7 @@ stage2:
 	@cp payload_stage2/payload_stage2.bin $(OUTDIR)/stage0x5C000.bin
 
 installer:
+	@mkdir payload_installer/brahma2/data/
 	@cp $(OUTDIR)/sector.bin payload_installer/brahma2/data/sector.bin
 	@cp $(OUTDIR)/firm0.bin payload_installer/brahma2/data/firm0.bin
 	@cp $(OUTDIR)/firm1.bin payload_installer/brahma2/data/firm1.bin
@@ -58,3 +59,7 @@ clean:
 	@$(MAKE) -C payload_stage2 clean
 	@$(MAKE) -C payload_installer clean TARGET=../$(TARGET)
 	@$(MAKE) -C bootloader clean
+	rm -rf data_output
+	
+purge: clean
+	rm -rf data_input/otp.bin
