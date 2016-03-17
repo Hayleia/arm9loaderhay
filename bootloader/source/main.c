@@ -5,84 +5,32 @@
 #include "config.h"
 #include "hid.h"
 #include "log.h"
-#include "i2c.h"
-#include "screen.h"
-#include "draw.h"
 #include "splash.h"
-
-#define DEFAULT_SECTION 	"GLOBAL"
-#define DEFAULT_PATH 		{0}
-#define DEFAULT_KEYDELAY	100 /* ms */
-#define DEFAULT_PAYLOAD 	-1 /* <0 - auto, 0 - disable, >0 - enabled */
-#define DEFAULT_OFFSET 		0x12000
-#define DEFAULT_SPLASH 		0 /* 0 - disabled, 1 - splash screen, 2 - entry info, 3 - both */ 
-#define DEFAULT_SPLASH_IMAGE {0} 
-#define DEFAULT_SCREEN 		1
-
-#define LOADER_SECTION 			"BOOTCTR9"
-#define DEFAULT_SPLASHDELAY 	0
-#define DEFAULT_SCREEN_LOADER	1 /* 0 - use payloadConfiguration in the end, 1 - screen init at start */
-#define DEFAULT_LOG_FILE 		0
-#define DEFAULT_LOG_SCREEN 		0
-#define DEFAULT_BOOTSPLASH 		0 /* 0 - disabled, 1 - splash screen, 2 - asciiSplash */ 
-#define DEFAULT_BOOTSPLASH_IMAGE {0} 
-#define DEFAULT_BRIGHTNESS		0xFF
-
-#define INI_FILE 			"/arm9loaderhax/boot_config.ini"
-#define INI_FILE_BOOTCTR 	"/boot_config.ini"
-
-
-#define PAYLOAD_ADDRESS		0x23F00000
-#define PAYLOAD_SIZE		0x00100000
-
-bool file_exists(const char* path) { 
-    FIL fd;
-    if(f_open(&fd, path, FA_READ | FA_OPEN_EXISTING) == FR_OK) { 
-       f_close(&fd); 
-       return true; 
-    } 
- 	return false; 
-} 
-
-bool openIniFile(const char* filename, FIL* file)
-{
-	if(file_exists(filename))
-    {
-    	if (f_open(file, filename, FA_READ | FA_OPEN_EXISTING) == FR_OK)
-        	return true;
-    }
-    return false;
-}
-
-int iniparse(const char* filename, ini_handler handler, void* user)
-{
-    FIL file;
-    int error;
-    if(!openIniFile(INI_FILE,&file))
-    {
-    	if(!openIniFile(INI_FILE_BOOTCTR,&file))
-        	return -1; 
-    }
-    
-    f_lseek(&file,0);
-    error = ini_parse_stream((ini_reader)f_gets, &file, handler, user);
-    f_close(&file);
-    return error;
-}
-
-void initScreen(bool enableScreen)
-{
-	if(enableScreen)
-	{
-		debug("Enabeling screen");
-		screenInit();
-		clearScreens();
-		debug("ScreensEnabled");
-	}
-}
+#include "helpers.h"
+#include "constands.h"
 
 int main() {
-	unsigned int br;
+	FATFS fs;
+	FIL configFile;
+	FIL payload;
+	FIL latestFile;
+	char latestFilePath[32]={0};
+	char latestSection[15]={0};
+	unsigned int br=0;
+
+    loaderConfiguration loader =  {
+	        .section = LOADER_SECTION,
+	        .keyDelay = DEFAULT_KEYDELAY,
+	        .bootsplash = DEFAULT_BOOTSPLASH, 
+            .bootsplash_image = DEFAULT_BOOTSPLASH_IMAGE,
+            .enableSoftbootSplash = DEFAULT_SOFTBOOT_SPLASH_LOADER,
+            .enableAutosoftboot = DEFAULT_AUTOSOFTBOOT,
+            .fileLog = DEFAULT_LOG_FILE,
+            .screenLog = DEFAULT_LOG_SCREEN,
+	        .screenEnabled = DEFAULT_SCREEN,
+	        .screenBrightness = DEFAULT_BOOTBRIGHTNESS,
+    };
+
 	configuration app =  {
 	        .section = DEFAULT_SECTION,
 	        .path = DEFAULT_PATH,
@@ -91,70 +39,82 @@ int main() {
 	        .offset = DEFAULT_OFFSET,
 	        .splash = DEFAULT_SPLASH, 
             .splash_image = DEFAULT_SPLASH_IMAGE,
-	        .screenEnabled = DEFAULT_SCREEN,
-    };
-    loaderConfiguration loader =  {
-	        .section = LOADER_SECTION,
-	        .keyDelay = DEFAULT_KEYDELAY,
-	        .bootsplash = DEFAULT_BOOTSPLASH, 
-            .bootsplash_image = DEFAULT_BOOTSPLASH_IMAGE,
-            .fileLog = DEFAULT_LOG_FILE,
-            .screenLog = DEFAULT_LOG_SCREEN,
+            .enableSoftbootSplash = DEFAULT_SOFTBOOT_SPLASH,
 	        .screenEnabled = DEFAULT_SCREEN,
 	        .screenBrightness = DEFAULT_BRIGHTNESS,
     };
-	FATFS fs;
-	FIL payload;
 
 	if(f_mount(&fs, "0:", 1) == FR_OK)
 	{
-		iniparse(INI_FILE,handlerLoaderConfiguration,&loader);
+    	if(!openIniFile(&configFile))
+    		panic("Config file not found.");
+
+		iniparse(handlerLoaderConfiguration,&loader,&configFile);
     	initLog(loader.fileLog, loader.screenLog);
-		setStartBrightness(loader.screenBrightness);
-    	initScreen(loader.screenEnabled);
+    	setBrightness(loader.screenBrightness);
+    	setScreenState(loader.screenEnabled);
 
     	if(loader.screenEnabled)
     	{
 			drawBootSplash(&loader);
     	}
-
+    	
     	debug("Reading GLOBAL section");
-    	iniparse(INI_FILE, handler, &app);
+    	iniparse(handler, &app,&configFile);
 
-    	debug("Wait %llu ms for Input",loader.keyDelay);
-		u32 key = WaitTimeForInput(loader.keyDelay);
+    	if(loader.enableAutosoftboot>0)
+    	{
+    		debug("opening last.section file");
+			checkFolders(LASTESTSETIONFILE, latestFilePath);
+			if(!isColdboot())
+			{
+				if (f_open(&latestFile, latestFilePath, FA_READ) == FR_OK)
+				{
+					br=0;
+				    debug("it's softreboot, read %s",LASTESTSETIONFILE);
+					f_gets(latestSection, 15, &latestFile);
+					br=strlen(latestSection);
+					app.section=latestSection;
+					f_close(&latestFile);
+					debug("Lates Section: %s",app.section);
+				}
+			}
+    	}
 
-        // using X-macros to generate each switch-case rules
-        // https://en.wikibooks.org/wiki/C_Programming/Preprocessor#X-Macros
-        #define KEY(k) \
-        if(key & KEY_##k) \
-            app.section = "KEY_"#k; \
-        else
-        #include "keys.def"
-            app.section = "DEFAULT";
+    	if(isColdboot() || loader.enableAutosoftboot==0 || br<=4)
+    	{
+	    	debug("Wait %llu ms for Input",loader.keyDelay);
+			u32 key = WaitTimeForInput(loader.keyDelay);
 
-	    debug("Key checked-selected section: %s",app.section);
+	        // using X-macros to generate each switch-case rules
+	        // https://en.wikibooks.org/wiki/C_Programming/Preprocessor#X-Macros
+	        #define KEY(k) \
+	        if(key & KEY_##k) \
+	            app.section = "KEY_"#k; \
+	        else
+	        #include "keys.def"
+	            app.section = "DEFAULT";
+
+	    	debug("Key checked-selected section: %s",app.section);
+    	}
 
 	    debug("Reading selected section");
-	    int config_err = iniparse(INI_FILE, handler, &app);
+	    int config_err = iniparse(handler, &app, &configFile);
 
 	    switch (config_err) {
 	        case 0:
 	            // section not found, try to load [DEFAULT] section
 	            if (strlen(app.path)==0) {
-	            	debug("Section not found, trying to load the default section");
+	            	debug("Section not found, trying to load the [DEFAULT] section");
 	                app.section = "DEFAULT";
 	                // don't need to check error again
-	                iniparse(INI_FILE, handler, &app);
+	                iniparse(handler, &app, &configFile);
 	                if (!app.path)
 	                    panic("Section [DEFAULT] not found or \"path\" not set.");
 	            } else if (!file_exists(app.path)) {
 	                debug("[ERROR] Target payload not found:\n%s",app.path);
 	                panic(app.path);
 	            }
-	            break;
-	        case -1:
-	            panic("Config file not found.");//, INI_FILE);
 	            break;
 	        case -2:
 	            // should not happen, however better be safe than sorry
@@ -172,8 +132,7 @@ int main() {
 		}
 		if(!file_exists(app.path))
 		{
-            debug("[ERROR] Target payload not found:");
-            panic(app.path);
+            panic("[ERROR] Target payload not found: %s",app.path);
 		}
 
 		if(drawSplash(&app))
@@ -185,37 +144,38 @@ int main() {
 		if(f_open(&payload, app.path, FA_READ | FA_OPEN_EXISTING) == FR_OK)
 		{
 			if(app.offset>0)
-			{ 	
-				debug("Jump to offset: %i",app.offset);
+			{
 				f_lseek (&payload, app.offset);
 			}
-			debug("Reading payload");
+			debug("Reading payload at offset %i",app.offset);
 			f_read(&payload, (void*)PAYLOAD_ADDRESS, PAYLOAD_SIZE, &br);
 			debug("Finished reading the payload");
 
+		    if(loader.enableAutosoftboot>0&&isColdboot())
+		    {
+		    	if(f_open(&latestFile, latestFilePath, FA_READ | FA_WRITE | FA_CREATE_ALWAYS )==FR_OK)
+		    	{
+			    	debug("writing to file: %s",app.section);
+					f_puts (app.section, &latestFile);
+					f_close(&latestFile);
+				}           
+			}
+
 			debug("closing files and unmount sd");
 			f_close(&payload);
+   			f_close(&configFile);
 			closeLogFile();
 			f_mount(&fs, "0:", 1);
 
 			debug("Configuring and jumping to the payload");
-			if(app.screenEnabled==0)
-			{
-				screenDeinit();
-			}
-			else
-			{
-				screenInit(app.screenEnabled);
-			}
+			setScreenState(app.screenEnabled);
+    		setBrightness(app.screenBrightness);
+
 			((void (*)())PAYLOAD_ADDRESS)();
 		}
 	}
-	else
-	{
-		initScreen(true);
-		panic("Failed to mount the sd-card or jump to the payload");
-	}
-	
+	initScreen(true);
+	panic("Failed to mount the sd-card or jump to the payload");
     
 	return 0;
 }

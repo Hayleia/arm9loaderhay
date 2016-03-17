@@ -109,21 +109,30 @@ int handler(void *user, const char *section, const char *name, const char *value
         pconfig->splash = myAtoi(value);
     } else if (MATCH(pconfig->section, "splash_image")) { 
         strcpy (pconfig->splash_image,value); 
+    } else if (MATCH(pconfig->section, "enableSoftbootSplash")) {
+        pconfig->enableSoftbootSplash = numberToInt(value);
     } else if (MATCH(pconfig->section, "screenEnabled")) {
         pconfig->screenEnabled = myAtoi(value);
+    } else if (MATCH(pconfig->section, "screenBrightness")) {
+        pconfig->screenBrightness = numberToInt(value);
     }
+
     return 1;
 }
 
 int handlerLoaderConfiguration(void *user, const char *section, const char *name, const char *value)
 {
-    loaderConfiguration *pconfig = (configuration *) user;
+    loaderConfiguration *pconfig = (loaderConfiguration *) user;
     if (MATCH(pconfig->section, "key_delay")) {
         pconfig->keyDelay = myAtoi(value);
     }else if (MATCH(pconfig->section, "boot_splash")) { 
         pconfig->bootsplash = myAtoi(value);
     } else if (MATCH(pconfig->section, "boot_splash_image")) { 
         strcpy (pconfig->bootsplash_image,value); 
+    } else if (MATCH(pconfig->section, "enableSoftbootSplash")) {
+        pconfig->enableSoftbootSplash = numberToInt(value);
+    } else if (MATCH(pconfig->section, "enableAutosoftboot")) {
+        pconfig->enableAutosoftboot = numberToInt(value);
     } else if (MATCH(pconfig->section, "fileLog")) {
         pconfig->fileLog = myAtoi(value);
     } else if (MATCH(pconfig->section, "screenLog")) {

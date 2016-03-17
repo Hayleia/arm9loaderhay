@@ -1,6 +1,7 @@
 #include "splash.h"
 #include "draw.h"
 #include "log.h"
+#include "helpers.h"
 #include "fatfs/sdmmc/sdmmc.h"
 #include "fatfs/ff.h"
 
@@ -8,6 +9,9 @@
 
 bool drawBootSplash(loaderConfiguration* loaderConfig)
 {
+    if(!isColdboot()&&loaderConfig->enableSoftbootSplash==0)
+        return false;
+
     if(loaderConfig->bootsplash>0)
     {
         switch(loaderConfig->bootsplash)
@@ -29,6 +33,9 @@ bool drawBootSplash(loaderConfiguration* loaderConfig)
 
 bool drawSplash(configuration* app)
 {
+    if(!isColdboot()&&app->enableSoftbootSplash==0)
+        return false;
+    
     if(app->splash>0)
     {
         switch(app->splash)
@@ -54,7 +61,7 @@ bool drawSplash(configuration* app)
 
 int splash_ascii()
 {
-    // print BootCtr logo
+    // print BootCtr9 logo
     // http://patorjk.com/software/taag/#p=display&f=Bigfig&t=BootCtr
     ClearScreen(TOP_SCREEN0,0);
     DrawStringF(5,5,ASCII_ART_TEMPLATE, VERSION_STRING);

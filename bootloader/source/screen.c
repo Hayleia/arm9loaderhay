@@ -2,23 +2,23 @@
 #include "i2c.h"
 
 #define DEFAULT_BRIGHTNESS 0x39
+#define BRIGHTNESS 0x1FFF3000
 #define FB_TOP_LEFT 0x18300000
 #define FB_TOP_RIGHT 0x18300000
 #define FB_BOTTOM 0x18346500
 
 //got code for disabeling from CakesForeveryWan
 volatile u32 *a11_entry = (volatile u32 *)0x1FFFFFF8;
-volatile u32 brightness = DEFAULT_BRIGHTNESS; 
-bool screenInitialized=false;
 
 void setStartBrightness(u32 _brightness)
 {
-    brightness=_brightness;
+    *(volatile uint32_t*)BRIGHTNESS=_brightness;
 }
-void screenInit()
+bool screenInit()
 {
-    if(*((u8*)0x101401C0) == 0x0&&screenInitialized==false)
-    {    
+    //Check if it's a no-screen-init A9LH boot via PDN_GPU_CNT  
+    if (*(u8*)0x10141200 == 0x1)
+    {
     	*a11_entry = (u32)enable_lcd;  
     	for(volatile unsigned int i = 0; i < 0xF; ++i); 
     	i2cWriteRegister(3, 0x22, 0x2A); // 0x2A -> boot into firm with no backlight 
@@ -35,14 +35,15 @@ void screenInit()
         //cakehax  
         *(u32*)0x23FFFE00 = 0x18300000;  
         *(u32*)0x23FFFE04 = 0x18300000;  
-        *(u32*)0x23FFFE08 = 0x18346500;  
-        screenInitialized=true;
+        *(u32*)0x23FFFE08 = 0x18346500; 
+        return true;
     }
+    return false;
 }
 
-void screenDeinit()
+void screenShutdown()
 {
-    if(*((u8*)0x101401C0) == 0x0||screenInitialized==true)
+    if(*(u8*)0x10141200 != 0x1)
     {
         *a11_entry = (u32)disable_lcds;  
         for(volatile unsigned int i = 0; i < 0xF; ++i); 
@@ -168,10 +169,10 @@ void regSet()
     *((volatile u32*)0x10202a04) = 0x00000000; // color fill disable
     *((volatile u32*)0x1020200C) &= 0xFFFEFFFE;// wtf register
    
-    *((volatile u32*)0x10202240) = brightness;
+    *((volatile u32*)0x10202240) = *(volatile uint32_t*)BRIGHTNESS;
     *((volatile u32*)0x10202244) = 0x1023E;
    
-    *((volatile u32*)0x10202A40) = brightness;
+    *((volatile u32*)0x10202A40) = *(volatile uint32_t*)BRIGHTNESS;
     *((volatile u32*)0x10202A44) = 0x1023E;
   
     // After hm call cmd 0x00160042 to acquire rights
@@ -271,7 +272,14 @@ void regSet()
     *a11_entry = 0;
    
     // Wait for entry to be set
-    while(!*a11_entry);
+    while(!*a11_entry)
+    {
+        *((volatile u32*)0x10202240) = *(volatile uint32_t*)BRIGHTNESS;
+        *((volatile u32*)0x10202244) = 0x1023E;
+       
+        *((volatile u32*)0x10202A40) = *(volatile uint32_t*)BRIGHTNESS;
+        *((volatile u32*)0x10202A44) = 0x1023E;
+    }
    
     // Jump
     ((void (*)())*a11_entry)();

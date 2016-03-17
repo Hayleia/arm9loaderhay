@@ -8,9 +8,8 @@
 #include <string.h>
 #include <stdarg.h>
 #include <stdio.h>
-
-#define LOGNAME "/arm9loaderhax/arm9bootloader.log"
-#define LOGNAME_BACKUP "/arm9bootloader.log"
+#include "helpers.h"
+#include "constands.h"
 
 static FIL logFile;
 bool fileLoggingEnabled		= false;
@@ -27,10 +26,11 @@ int initLog(bool _fileLoggingEnabled, bool _screenLoggingEnabled)
 
 void openLogFile()
 {	
-	if (f_open(&logFile, LOGNAME, FA_READ | FA_WRITE | FA_CREATE_ALWAYS ) != FR_OK)
+	char logFilePath[64]={0};
+	checkFolders(LOGNAME, logFilePath);
+	if (f_open(&logFile, logFilePath, FA_READ | FA_WRITE | FA_CREATE_ALWAYS ) != FR_OK)
     {
-    	if (f_open(&logFile, LOGNAME_BACKUP, FA_READ | FA_WRITE | FA_CREATE_ALWAYS ) != FR_OK)
-    		return;
+    	return;
     }           
 	f_puts ("opened logfile\n", &logFile);
     f_sync (&logFile);  

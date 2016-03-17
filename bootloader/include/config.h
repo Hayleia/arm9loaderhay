@@ -8,25 +8,30 @@
 
 typedef struct {
     char* section;
+    unsigned long long keyDelay;
+    int bootsplash; 
+    char bootsplash_image[64];
+    unsigned int enableSoftbootSplash;
+    unsigned int enableAutosoftboot;
+    bool fileLog;
+    bool screenLog;
+    unsigned int screenEnabled;
+    unsigned int screenBrightness;
+} loaderConfiguration;
+
+typedef struct {
+    char* section;
     char path[64];
     unsigned long long splashDelay;
     unsigned long payload;
     unsigned long offset; 
 	int splash; 
 	char splash_image[64];
-    unsigned int screenEnabled;
-} configuration;
-
-typedef struct {
-    char* section;
-    unsigned long long keyDelay;
-    int bootsplash; 
-    char bootsplash_image[64];
-    bool fileLog;
-    bool screenLog;
+    unsigned int enableSoftbootSplash;
     unsigned int screenEnabled;
     unsigned int screenBrightness;
-} loaderConfiguration;
+} configuration;
+
 
 
 #define MATCH(s, n) strcmp(section, s) == 0 && strcmp(name, n) == 0
