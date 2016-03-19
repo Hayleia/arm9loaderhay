@@ -11,6 +11,8 @@
 #define CFG_BOOTENV 0x10010000
 #define COLDBOOT 0
 
+#define ARM11COMMAND_ADDRESS 0x1FFF3000
+
 /* Default configuration values */
 #define LOADER_SECTION 			"BOOTCTR9"
 #define DEFAULT_SPLASHDELAY 	0

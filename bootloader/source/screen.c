@@ -1,25 +1,45 @@
 #include "screen.h"
 #include "i2c.h"
-
-#define DEFAULT_BRIGHTNESS 0x39
-#define BRIGHTNESS 0x1FFF3000
+#include "constands.h"
 #define FB_TOP_LEFT 0x18300000
 #define FB_TOP_RIGHT 0x18300000
 #define FB_BOTTOM 0x18346500
 
+//default -1 arm11 done
+typedef struct {
+    volatile u32 a11ControllValue;
+    volatile u32 version;
+    volatile u32 brightness;
+    volatile int setBrightness;
+    volatile int enableLCD;
+} a11Commands;
+
 //got code for disabeling from CakesForeveryWan
 volatile u32 *a11_entry = (volatile u32 *)0x1FFFFFF8;
+volatile a11Commands* arm11_commands=(volatile a11Commands*)ARM11COMMAND_ADDRESS;
 
-void setStartBrightness(u32 _brightness)
+void __attribute__((naked)) arm11BackgroundProcess();
+void startArm11BackgroundProcess()
 {
-    *(volatile uint32_t*)BRIGHTNESS=_brightness;
+    if(arm11_commands->a11ControllValue!=0xDEADBEEF)
+    {
+        *a11_entry=(u32)arm11BackgroundProcess;
+        for(volatile unsigned int i = 0; i < 0xF; ++i); 
+    }
 }
+
+void changeBrightness(u32 _brightness)
+{
+    arm11_commands->brightness=_brightness;
+    arm11_commands->setBrightness=1;
+}
+
 bool screenInit()
 {
     //Check if it's a no-screen-init A9LH boot via PDN_GPU_CNT  
     if (*(u8*)0x10141200 == 0x1)
     {
-    	*a11_entry = (u32)enable_lcd;  
+        arm11_commands->enableLCD=1;
     	for(volatile unsigned int i = 0; i < 0xF; ++i); 
     	i2cWriteRegister(3, 0x22, 0x2A); // 0x2A -> boot into firm with no backlight 
         
@@ -45,31 +65,20 @@ void screenShutdown()
 {
     if(*(u8*)0x10141200 != 0x1)
     {
-        *a11_entry = (u32)disable_lcds;  
+        arm11_commands->enableLCD=0;
         for(volatile unsigned int i = 0; i < 0xF; ++i); 
     }
 }
 
-void __attribute__((naked)) disable_lcds()  
+static inline void disable_lcds()  
 {  
-	*a11_entry = 0;  // Don't wait for us  
-
 	*(volatile u32 *)0x10202A44 = 0;  
 	*(volatile u32 *)0x10202244 = 0;  
 	*(volatile u32 *)0x1020200C = 0;  
 	*(volatile u32 *)0x10202014 = 0;  
-	 
-	while (!*a11_entry);  
-	((void (*)())*a11_entry)();  
-}  
-void regSet();
-void __attribute__ ((naked)) enable_lcd()
-{
-    //__asm__ ("ldr r0,=_stack\n\t mov sp, r0");
-    regSet();
-}
+} 
 
-void regSet()
+static inline void enable_lcd()
 {
 
     *((volatile u32*)0x1FFFFFFD) = 0;
@@ -169,10 +178,10 @@ void regSet()
     *((volatile u32*)0x10202a04) = 0x00000000; // color fill disable
     *((volatile u32*)0x1020200C) &= 0xFFFEFFFE;// wtf register
    
-    *((volatile u32*)0x10202240) = *(volatile uint32_t*)BRIGHTNESS;
+    *((volatile u32*)0x10202240) = ((a11Commands*)ARM11COMMAND_ADDRESS)->brightness;
     *((volatile u32*)0x10202244) = 0x1023E;
    
-    *((volatile u32*)0x10202A40) = *(volatile uint32_t*)BRIGHTNESS;
+    *((volatile u32*)0x10202A40) = ((a11Commands*)ARM11COMMAND_ADDRESS)->brightness;
     *((volatile u32*)0x10202A44) = 0x1023E;
   
     // After hm call cmd 0x00160042 to acquire rights
@@ -267,22 +276,46 @@ void regSet()
     *((volatile u32*)0x10400590) = 0x000002D0;
    
     *((volatile u32*)0x10401000) = 0x00000000;
-
-    // Reset the entry
-    *a11_entry = 0;
-   
-    // Wait for entry to be set
-    while(!*a11_entry)
-    {
-        *((volatile u32*)0x10202240) = *(volatile uint32_t*)BRIGHTNESS;
-        *((volatile u32*)0x10202244) = 0x1023E;
-       
-        *((volatile u32*)0x10202A40) = *(volatile uint32_t*)BRIGHTNESS;
-        *((volatile u32*)0x10202A44) = 0x1023E;
-    }
-   
-    // Jump
-    ((void (*)())*a11_entry)();
- 
 }
 
+static inline void a11setBrightness()
+{
+    if(*(u8*)0x10141200 != 0x1)
+    {
+        *((volatile u32*)0x10202240) = ((a11Commands*)ARM11COMMAND_ADDRESS)->brightness;           
+        *((volatile u32*)0x10202A40) = ((a11Commands*)ARM11COMMAND_ADDRESS)->brightness;
+    }
+} 
+
+void __attribute__((naked)) arm11BackgroundProcess()
+{
+    *a11_entry = 0;  // Don't wait for us  
+    a11Commands* arm11commands=(a11Commands*)ARM11COMMAND_ADDRESS;
+    arm11commands->a11ControllValue=0xDEADBEEF;
+    arm11commands->version=1;
+    arm11commands->setBrightness=-1;
+    arm11commands->brightness=DEFAULT_BRIGHTNESS;
+    arm11commands->enableLCD=-1;
+    while (!*a11_entry)
+    {
+        if(arm11commands->a11ControllValue==0xDEADBEEF)
+        {
+            
+            if(arm11commands->setBrightness!=-1)
+            {
+                a11setBrightness();
+                arm11commands->setBrightness=-1;
+            }
+            if(arm11commands->enableLCD!=-1)
+            {
+                if(arm11commands->enableLCD==0)
+                    disable_lcds();
+                if(arm11commands->enableLCD==1)
+                    enable_lcd();
+                arm11commands->enableLCD=-1;
+            }
+        }
+    }
+    arm11commands->a11ControllValue=0;
+    ((void (*)())*a11_entry)();  
+}
