@@ -92,6 +92,8 @@ int main()
 	if(f_mount(&fs, "0:", 0) == FR_OK)
 	{
 		loadAndRunPayload("arm9loaderhax/arm9bootloader.bin", BOOTLOADER_PAYLOAD_ADDRESS);
+		loadAndRunPayload("a9lh/arm9bootloader.bin", BOOTLOADER_PAYLOAD_ADDRESS);
+		loadAndRunPayload("arm9bootloader/arm9bootloader.bin", BOOTLOADER_PAYLOAD_ADDRESS);
 		loadAndRunPayload("arm9bootloader.bin", BOOTLOADER_PAYLOAD_ADDRESS);
 		loadAndRunPayload("arm9loaderhax.bin", PAYLOAD_ADDRESS);
 	}
