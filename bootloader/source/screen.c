@@ -1,9 +1,6 @@
 #include "screen.h"
 #include "i2c.h"
 #include "constands.h"
-#define FB_TOP_LEFT 0x18300000
-#define FB_TOP_RIGHT 0x18300000
-#define FB_BOTTOM 0x18346500
 
 //default -1 arm11 done
 typedef struct {
@@ -40,22 +37,22 @@ bool screenInit()
     if (*(u8*)0x10141200 == 0x1)
     {
         arm11_commands->enableLCD=1;
-    	for(volatile unsigned int i = 0; i < 0xF; ++i); 
-    	i2cWriteRegister(3, 0x22, 0x2A); // 0x2A -> boot into firm with no backlight 
+        for(volatile unsigned int i = 0; i < 0xF; ++i);
+        i2cWriteRegister(3, 0x22, 0x2A); // 0x2A -> boot into firm with no backlight
         
-        *(volatile uint32_t*)0x80FFFC0 = 0x18300000;    // framebuffer 1 top left  
-        *(volatile uint32_t*)0x80FFFC4 = 0x18300000;    // framebuffer 2 top left  
-        *(volatile uint32_t*)0x80FFFC8 = 0x18300000;    // framebuffer 1 top right  
-        *(volatile uint32_t*)0x80FFFCC = 0x18300000;    // framebuffer 2 top right  
-        *(volatile uint32_t*)0x80FFFD0 = 0x18346500;    // framebuffer 1 bottom  
-        *(volatile uint32_t*)0x80FFFD4 = 0x18346500;    // framebuffer 2 bottom  
-        *(volatile uint32_t*)0x80FFFD8 = 1;    // framebuffer select top  
-        *(volatile uint32_t*)0x80FFFDC = 1;    // framebuffer select bottom  
+        *(volatile u32*)0x80FFFC0 = FB_TOP_LEFT;    // framebuffer 1 top left
+        *(volatile u32*)0x80FFFC4 = FB_TOP_LEFT;    // framebuffer 2 top left
+        *(volatile u32*)0x80FFFC8 = FB_TOP_RIGHT;    // framebuffer 1 top right
+        *(volatile u32*)0x80FFFCC = FB_TOP_RIGHT;    // framebuffer 2 top right
+        *(volatile u32*)0x80FFFD0 = FB_BOTTOM;    // framebuffer 1 bottom
+        *(volatile u32*)0x80FFFD4 = FB_BOTTOM;    // framebuffer 2 bottom
+        *(volatile u32*)0x80FFFD8 = 1;    // framebuffer select top
+        *(volatile u32*)0x80FFFDC = 1;    // framebuffer select bottom
 
         //cakehax  
-        *(u32*)0x23FFFE00 = 0x18300000;  
-        *(u32*)0x23FFFE04 = 0x18300000;  
-        *(u32*)0x23FFFE08 = 0x18346500; 
+        *(volatile u32*)0x23FFFE00 = FB_TOP_LEFT;
+        *(volatile u32*)0x23FFFE04 = FB_TOP_RIGHT;
+        *(volatile u32*)0x23FFFE08 = FB_BOTTOM;
         return true;
     }
     return false;
@@ -66,7 +63,7 @@ void screenShutdown()
     if(*(u8*)0x10141200 != 0x1)
     {
         arm11_commands->enableLCD=0;
-        for(volatile unsigned int i = 0; i < 0xF; ++i); 
+        for(volatile unsigned int i = 0; i < 0xF; ++i);
     }
 }
 
@@ -300,7 +297,6 @@ void __attribute__((naked)) arm11BackgroundProcess()
     {
         if(arm11commands->a11ControllValue==0xDEADBEEF)
         {
-            
             if(arm11commands->setBrightness!=-1)
             {
                 a11setBrightness();

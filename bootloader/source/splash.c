@@ -4,6 +4,7 @@
 #include "helpers.h"
 #include "fatfs/sdmmc/sdmmc.h"
 #include "fatfs/ff.h"
+#include "constands.h"
 
 #define TMPADDRESS 0x24100000
 
@@ -63,7 +64,8 @@ int splash_ascii()
 {
     // print BootCtr9 logo
     // http://patorjk.com/software/taag/#p=display&f=Bigfig&t=BootCtr
-    ClearScreen(TOP_SCREEN0,0);
+    ClearScreen(TOP_SCREENL,0);
+    ClearScreen(TOP_SCREENR,0);
     DrawStringF(5,5,ASCII_ART_TEMPLATE, VERSION_STRING);
     return 0;
 }
@@ -87,14 +89,16 @@ int splash_image(char *splash_path)
     //load splash to templocation in memory to prevent visible drawing
     f_read(&splash_file, (void*)(TMPADDRESS), 0x00600000, &br);
     // copy splash image to framebuffer
-    memcpy((void*)(*(u32*)0x23FFFE00),(void*)TMPADDRESS,br);
+    memcpy((void*)TOP_SCREENL,(void*)TMPADDRESS,br);
+    memcpy((void*)TOP_SCREENR,(void*)TMPADDRESS,br);
 
     return 0;    
 }
 
 int splash_ascii_extendet(const char* payloadName)
 {
-    ClearScreen(TOP_SCREEN0,0);
+    ClearScreen(TOP_SCREENL,0);
+    ClearScreen(TOP_SCREENR,0);
     DrawStringF(5,5,ASCII_ART_TEMPLATE_EXTENDET, VERSION_STRING, payloadName);
     return 0;
 } 

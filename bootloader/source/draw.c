@@ -5,6 +5,7 @@
 
 #include "font.h"
 #include "draw.h"
+#include "constands.h"
 
 int current_y = 0;
 
@@ -21,8 +22,9 @@ void ClearScreen(unsigned char *screen, int color)
 
 void clearScreens()
 {
-    ClearScreen(TOP_SCREEN0,0);
-    ClearScreen(BOT_SCREEN0,0);
+    ClearScreen(TOP_SCREENL,0);
+    ClearScreen(TOP_SCREENR,0);
+    ClearScreen(BOT_SCREEN,0);
 }
 
 void DrawCharacter(unsigned char *screen, int character, int x, int y, int color, int bgcolor)
@@ -77,7 +79,8 @@ void DrawStringF(int x, int y, const char *format, ...)
     vsnprintf(str, 256, format, va);
     va_end(va);
 
-    DrawString(TOP_SCREEN0, str, x, y, RGB(255, 255, 255), RGB(0, 0, 0));
+    DrawString(TOP_SCREENL, str, x, y, RGB(255, 255, 255), RGB(0, 0, 0));
+    DrawString(TOP_SCREENR, str, x, y, RGB(255, 255, 255), RGB(0, 0, 0));
 }
 
 void drawDebug(const char *format, ...)
@@ -89,7 +92,7 @@ void drawDebug(const char *format, ...)
     vsnprintf(str, 256, format, va);
     va_end(va);
 
-    current_y = DrawString(BOT_SCREEN0, str, 10, current_y, RGB(255, 255, 255), RGB(0, 0, 0));
+    current_y = DrawString(BOT_SCREEN, str, 10, current_y, RGB(255, 255, 255), RGB(0, 0, 0));
 
     current_y += 10;
 }

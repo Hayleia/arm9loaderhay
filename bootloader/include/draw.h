@@ -10,8 +10,6 @@
 
 #define RGB(r,g,b) (r<<24|b<<16|g<<8|r)
 
-#define TOP_SCREEN0 (u8*)(0x18300000)
-#define BOT_SCREEN0 (u8*)(0x18346500)
 extern int current_y;
 
 void ClearScreen(unsigned char *screen, int color);
