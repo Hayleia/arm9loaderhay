@@ -88,7 +88,7 @@ void panic(const char *format, ...)
     vsnprintf(str, 256, format, va);
     va_end(va);
 
-
+	initScreen();
 	debug("ERROR: %s",str);
     logToScreen("Press any key to shutdown");
 	InputWait();

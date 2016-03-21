@@ -174,7 +174,6 @@ int main() {
 			((void (*)())PAYLOAD_ADDRESS)();
 		}
 	}
-	initScreen(true);
 	panic("Failed to mount the sd-card or jump to the payload");
     
 	return 0;
