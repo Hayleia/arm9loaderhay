@@ -19,7 +19,5 @@
 							
 bool drawBootSplash(loaderConfiguration* loaderConfig);
 bool drawSplash(configuration* app);
-int splash_ascii(void); 
-int splash_ascii_extendet(const char* payloadName); 
-int splash_image(char *splash_path); 
-int splash_image_extendet(char *splash_path,const char* payloadName); 
+int splash_ascii(const char* payloadName);
+int splash_image(char *splash_path);

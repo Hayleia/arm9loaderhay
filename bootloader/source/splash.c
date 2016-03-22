@@ -20,10 +20,10 @@ bool drawBootSplash(loaderConfiguration* loaderConfig)
             case 1:
             case 3:
                 if(splash_image(loaderConfig->bootsplash_image)!=0)
-                    splash_ascii();
+                    splash_ascii(NULL);
                 break;
             case 2:
-                splash_ascii();
+                splash_ascii(NULL);
                 break;
         }
         return true;
@@ -43,13 +43,14 @@ bool drawSplash(configuration* app)
         {/* 0 - disabled, 1 - splash screen, 2 - entry info, 3 - both */ 
             case 1:
                 if(splash_image(app->splash_image)!=0)
-                    splash_ascii();
+                    splash_ascii(NULL);
                 break;
             case 2:
-                splash_ascii_extendet(app->path);
+                splash_ascii(app->path);
                 break;
             case 3:
-                splash_image_extendet(app->splash_image,app->path);
+                if(splash_image(app->splash_image)!=0)
+                    splash_ascii(app->path);
                 break;
         }
         debug("Showing Splash for %llu ms",app->splashDelay);
@@ -60,12 +61,20 @@ bool drawSplash(configuration* app)
         return false;
 }
 
-int splash_ascii()
+int splash_ascii(const char* payloadName)
 {
     // print BootCtr9 logo
     // http://patorjk.com/software/taag/#p=display&f=Bigfig&t=BootCtr
     ClearScreen(TOP_SCREENL,0);
     ClearScreen(TOP_SCREENR,0);
+    if(payloadName!=NULL)
+    {
+        if(strlen(payloadName)>1)
+        {
+            DrawStringF(5,5,ASCII_ART_TEMPLATE_EXTENDET, VERSION_STRING, payloadName);
+            return 0;
+        }
+    }
     DrawStringF(5,5,ASCII_ART_TEMPLATE, VERSION_STRING);
     return 0;
 }
@@ -88,24 +97,9 @@ int splash_image(char *splash_path)
 
     //load splash to templocation in memory to prevent visible drawing
     f_read(&splash_file, (void*)(TMPADDRESS), 0x00600000, &br);
-    // copy splash image to framebuffer
+    // copy splash image to framebuffers(in case 3d is enabled)
     memcpy((void*)TOP_SCREENL,(void*)TMPADDRESS,br);
     memcpy((void*)TOP_SCREENR,(void*)TMPADDRESS,br);
 
     return 0;    
-}
-
-int splash_ascii_extendet(const char* payloadName)
-{
-    ClearScreen(TOP_SCREENL,0);
-    ClearScreen(TOP_SCREENR,0);
-    DrawStringF(5,5,ASCII_ART_TEMPLATE_EXTENDET, VERSION_STRING, payloadName);
-    return 0;
-} 
-
-int splash_image_extendet(char *splash_path,const char* payloadName)
-{
-    if(splash_image(splash_path)!=0)
-        return splash_ascii_extendet(payloadName);
-    return 0;
 }
