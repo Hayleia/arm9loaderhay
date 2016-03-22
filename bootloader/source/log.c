@@ -65,7 +65,7 @@ void logToScreen(char *msg)
 	}
 }
 
-void debug(const char *format, ...)
+void info(const char *format, ...)
 {
     char str[256];
     va_list va;
@@ -76,6 +76,18 @@ void debug(const char *format, ...)
 
     logToFile(str);
     logToScreen(str);
+}
+
+void debug(const char *format, ...)
+{
+	char str[256];
+    va_list va;
+
+    va_start(va, format);
+    vsnprintf(str, 256, format, va);
+    va_end(va);
+
+	info("[DEBUG] %s",str);
 }
 
 void panic(const char *format, ...)
@@ -89,8 +101,8 @@ void panic(const char *format, ...)
     va_end(va);
 
 	initScreen();
-	debug("ERROR: %s",str);
-    logToScreen("Press any key to shutdown");
+	info("[PANIC] %s",str);
+    drawDebug("Press any key to shutdown");
 	InputWait();
     shutdown();
 }

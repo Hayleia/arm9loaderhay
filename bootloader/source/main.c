@@ -83,7 +83,7 @@ int main() {
 
     	if(isColdboot() || loader.enableAutosoftboot==0 || br<=4)
     	{
-	    	debug("Wait %llu ms for Input",loader.keyDelay);
+	    	info("Wait %llu ms for Input",loader.keyDelay);
 			u32 key = WaitTimeForInput(loader.keyDelay);
 
 	        // using X-macros to generate each switch-case rules
@@ -95,7 +95,7 @@ int main() {
 	        #include "keys.def"
 	            app.section = "DEFAULT";
 
-	    	debug("Key checked-selected section: %s",app.section);
+	    	info("Key checked-selected section: %s",app.section);
     	}
 
 	    debug("Reading selected section");
@@ -109,11 +109,8 @@ int main() {
 	                app.section = "DEFAULT";
 	                // don't need to check error again
 	                iniparse(handler, &app, &configFile);
-	                if (!app.path)
+	                if (strlen(app.path)==0)
 	                    panic("Section [DEFAULT] not found or \"path\" not set.");
-	            } else if (!file_exists(app.path)) {
-	                debug("[ERROR] Target payload not found:\n%s",app.path);
-	                panic(app.path);
 	            }
 	            break;
 	        case -2:
@@ -132,7 +129,7 @@ int main() {
 		}
 		if(!file_exists(app.path))
 		{
-            panic("[ERROR] Target payload not found: %s",app.path);
+            panic("Target payload not found: %s",app.path);
 		}
 
 		if(drawSplash(&app))
@@ -140,7 +137,7 @@ int main() {
 			debug("Splash loaded");
 		}
 
-		debug("Loading Payload: %s",app.path);
+		info("Loading Payload: %s",app.path);
 		if(f_open(&payload, app.path, FA_READ | FA_OPEN_EXISTING) == FR_OK)
 		{
 			if(app.offset>0)
@@ -155,13 +152,13 @@ int main() {
 		    {
 		    	if(f_open(&latestFile, latestFilePath, FA_READ | FA_WRITE | FA_CREATE_ALWAYS )==FR_OK)
 		    	{
-			    	debug("writing to file: %s",app.section);
+			    	debug("Writing to latest file: %s",app.section);
 					f_puts (app.section, &latestFile);
 					f_close(&latestFile);
 				}           
 			}
 
-			debug("closing files and unmount sd");
+			debug("Closing files and unmount sd");
 			f_close(&payload);
    			f_close(&configFile);
 			closeLogFile();
