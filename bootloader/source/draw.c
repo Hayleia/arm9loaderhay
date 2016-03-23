@@ -5,7 +5,7 @@
 
 #include "font.h"
 #include "draw.h"
-#include "constands.h"
+#include "constants.h"
 
 int current_y = 0;
 
@@ -92,7 +92,7 @@ void drawDebug(const char *format, ...)
     vsnprintf(str, 256, format, va);
     va_end(va);
 
-    current_y = DrawString(BOT_SCREEN, str, 10, current_y, RGB(255, 255, 255), RGB(0, 0, 0));
+    current_y = DrawString(DEBUGSCREEN, str, 10, current_y, RGB(255, 255, 255), RGB(0, 0, 0));
 
     current_y += 10;
 }

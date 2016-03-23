@@ -13,7 +13,7 @@
 
 #define ARM11COMMAND_ADDRESS 0x1FFF3000
 
-/* Screen constands */
+/* Screen constants */
 #define FB_TOP_LEFT 0x18300000
 #define FB_TOP_RIGHT 0x18300000
 #define FB_BOTTOM 0x18346500
@@ -21,6 +21,12 @@
 #define TOP_SCREENL (u8*)(*(u32*)(0x23FFFE00))
 #define TOP_SCREENR (u8*)(*(u32*)(0x23FFFE04))
 #define BOT_SCREEN  (u8*)(*(u32*)(0x23FFFE08))
+
+#define DEBUGSCREEN BOT_SCREEN
+
+/* Splash constants */
+
+#define TMPSPLASHADDRESS 0x24100000
 
 /* Default configuration values */
 #define LOADER_SECTION 			"BOOTCTR9"

@@ -1,6 +1,6 @@
 #include "screen.h"
 #include "i2c.h"
-#include "constands.h"
+#include "constants.h"
 
 //default -1 arm11 done
 typedef struct {

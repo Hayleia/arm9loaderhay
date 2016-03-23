@@ -4,9 +4,7 @@
 #include "helpers.h"
 #include "fatfs/sdmmc/sdmmc.h"
 #include "fatfs/ff.h"
-#include "constands.h"
-
-#define TMPADDRESS 0x24100000
+#include "constants.h"
 
 bool drawBootSplash(loaderConfiguration* loaderConfig)
 {
@@ -96,10 +94,10 @@ int splash_image(char *splash_path)
     }
 
     //load splash to templocation in memory to prevent visible drawing
-    f_read(&splash_file, (void*)(TMPADDRESS), 0x00600000, &br);
+    f_read(&splash_file, (void*)(TMPSPLASHADDRESS), 0x00600000, &br);
     // copy splash image to framebuffers(in case 3d is enabled)
-    memcpy((void*)TOP_SCREENL,(void*)TMPADDRESS,br);
-    memcpy((void*)TOP_SCREENR,(void*)TMPADDRESS,br);
+    memcpy((void*)TOP_SCREENL,(void*)TMPSPLASHADDRESS,br);
+    memcpy((void*)TOP_SCREENR,(void*)TMPSPLASHADDRESS,br);
 
     return 0;    
 }

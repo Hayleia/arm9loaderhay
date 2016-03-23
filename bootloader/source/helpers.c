@@ -1,10 +1,11 @@
 #include "helpers.h"
 #include "log.h"
-#include "constands.h"
+#include "constants.h"
 #include "screen.h"
 #include "draw.h"
 
 /* File Helpers */
+
 char workingDir[64]={0};
 
 bool file_exists(const char* path) { 
@@ -20,7 +21,7 @@ void getWorkingDirectory(char* str)
 {
 	if(workingDir[0]==0)
 	{
-		debug("checking for target workingDir");
+		debug("Checking for target workingDir");
 		char* supportedFolders[]={SUPPORTEDFOLDERS};
 		char targetPath[64]={0};
 		u32 numberOfFolders=sizeof(supportedFolders)/sizeof(char*);
@@ -36,7 +37,7 @@ void getWorkingDirectory(char* str)
 		}
 		if(workingDir[0]==0)
 			strcpy(workingDir,"/");
-		debug("working directory set to: %s",workingDir);
+		debug("Working directory set to: %s",workingDir);
 	}
 	strcpy(str,workingDir);
 }
@@ -61,17 +62,16 @@ void setScreenState(bool enableScreen)
 
 void initScreen()
 {
-	debug("Enabeling screen");
 	if(screenInit())
 	{
 		clearScreens();
-		debug("ScreensEnabled");
+		debug("Screens enabled");
 	}
 }
 
 void shutdownScreen()
 {
-	debug("Screen shutdown");
+	debug("shutting down Screens");
 	screenShutdown();
 }
 
@@ -83,6 +83,7 @@ void setBrightness(u8 brightness)
 
 
 /* Config Helpers */
+
 bool openIniFile(FIL* file)
 {
     char filename[64]={0};
@@ -104,6 +105,7 @@ int iniparse(ini_handler handler, void* user, FIL* file)
 }
 
 /* other Helpers */
+
 bool isColdboot()
 {
 	if(*(u8*)CFG_BOOTENV == COLDBOOT)

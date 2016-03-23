@@ -9,7 +9,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include "helpers.h"
-#include "constands.h"
+#include "constants.h"
 
 static FIL logFile;
 bool fileLoggingEnabled		= false;

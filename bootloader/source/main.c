@@ -7,7 +7,7 @@
 #include "log.h"
 #include "splash.h"
 #include "helpers.h"
-#include "constands.h"
+#include "constants.h"
 
 int main() {
 	FATFS fs;
@@ -59,12 +59,12 @@ int main() {
 			drawBootSplash(&loader);
     	}
     	
-    	debug("Reading GLOBAL section");
+    	debug("Reading [GLOBAL] section");
     	iniparse(handler, &app,&configFile);
 
     	if(loader.enableAutosoftboot>0)
     	{
-    		debug("opening last.section file");
+    		debug("Opening %s file",LASTESTSETIONFILE);
 			checkFolders(LASTESTSETIONFILE, latestFilePath);
 			if(!isColdboot())
 			{
@@ -76,7 +76,7 @@ int main() {
 					br=strlen(latestSection);
 					app.section=latestSection;
 					f_close(&latestFile);
-					debug("Lates Section: %s",app.section);
+					info("Latest Section: [%s]",app.section);
 				}
 			}
     	}
@@ -95,15 +95,14 @@ int main() {
 	        #include "keys.def"
 	            app.section = "DEFAULT";
 
-	    	info("Key checked-selected section: %s",app.section);
+	    	info("Key checked-selected section: [%s]",app.section);
     	}
 
-	    debug("Reading selected section");
+	    debug("Reading current section");
 	    int config_err = iniparse(handler, &app, &configFile);
 
 	    switch (config_err) {
 	        case 0:
-	            // section not found, try to load [DEFAULT] section
 	            if (strlen(app.path)==0) {
 	            	debug("Section not found, trying to load the [DEFAULT] section");
 	                app.section = "DEFAULT";
@@ -118,14 +117,14 @@ int main() {
 	            panic("Config file is too big.");
 	            break;
 	        default:
-	            panic("Error found in config file");
+	            panic("Error found in config file, error code %i",config_err);
 	            break;
 	    }
 
 		debug("Checking payload");
 		if(app.payload==0)
 		{	
-			panic("Trying to load a 3dsx - this is not supported by this version");
+			panic("Trying to load a 3dsx - this is not supported by arm9");
 		}
 		if(!file_exists(app.path))
 		{
@@ -134,17 +133,15 @@ int main() {
 
 		if(drawSplash(&app))
 		{
-			debug("Splash loaded");
+			debug("Splash sucessfully loaded");
 		}
 
 		info("Loading Payload: %s",app.path);
 		if(f_open(&payload, app.path, FA_READ | FA_OPEN_EXISTING) == FR_OK)
 		{
-			if(app.offset>0)
-			{
-				f_lseek (&payload, app.offset);
-			}
 			debug("Reading payload at offset %i",app.offset);
+			if(app.offset>0)
+				f_lseek (&payload, app.offset);
 			f_read(&payload, (void*)PAYLOAD_ADDRESS, PAYLOAD_SIZE, &br);
 			debug("Finished reading the payload");
 
@@ -152,7 +149,7 @@ int main() {
 		    {
 		    	if(f_open(&latestFile, latestFilePath, FA_READ | FA_WRITE | FA_CREATE_ALWAYS )==FR_OK)
 		    	{
-			    	debug("Writing to latest file: %s",app.section);
+			    	debug("Writing latest section to file: [%s]",app.section);
 					f_puts (app.section, &latestFile);
 					f_close(&latestFile);
 				}           
@@ -169,9 +166,9 @@ int main() {
     		setBrightness(app.screenBrightness);
 
 			((void (*)())PAYLOAD_ADDRESS)();
+			panic("Failed to jump to the Payload");
 		}
 	}
-	panic("Failed to mount the sd-card or jump to the payload");
-    
+	panic("Failed to mount the sd-card");
 	return 0;
 }
