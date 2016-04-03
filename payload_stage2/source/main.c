@@ -11,12 +11,12 @@
 #define SCREEN_SIZE 		400 * 240 * 3 / 4 //yes I know this is more than the size of the bootom screen
 #define EMMC_STATUS0 		0x1000601c
 
-extern u8 screen_init_bin[];
-extern u32 screen_init_bin_size;
+extern u8 arm11bg_bin[];
+extern u32 arm11bg_bin_size;
 
 void ownArm11()
 {
-    memcpy((void*)A11_PAYLOAD_LOC, screen_init_bin, screen_init_bin_size);
+    memcpy((void*)A11_PAYLOAD_LOC, arm11bg_bin, arm11bg_bin_size);
 	*((u32*)0x1FFAED80) = 0xE51FF004;
 	*((u32*)0x1FFAED84) = A11_PAYLOAD_LOC;
 	for(int i = 0; i < 0x80000; i++)
@@ -37,21 +37,16 @@ void clearScreen()
 	}
 }
 
-u32 sdIsInserted()
-{
-	u16 emmcStatus0 = *((u16*)EMMC_STATUS0);
-	emmcStatus0&=(1<<5);
-	if(emmcStatus0>0)
-		return true;
-	return false;
-}
+
 
 void checkSD()
 {
-	if(!sdIsInserted())
-	{
-		i2cWriteRegister(I2C_DEV_MCU, 0x20, (u8)(1<<0));
-	}
+	u16 emmcStatus0 = *((u16*)EMMC_STATUS0);
+	emmcStatus0&=(1<<5);
+	if(emmcStatus0)
+		return;
+	
+	i2cWriteRegister(I2C_DEV_MCU, 0x20, (u8)(1<<0));
 }
 
 void loadAndRunPayload(const char* payloadName, u32 payloadAddress)

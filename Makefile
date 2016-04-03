@@ -1,4 +1,4 @@
-.PHONY : all hax firm0 firm1 sector screen_init stage2 installer clean
+.PHONY : all hax firm0 firm1 sector arm11bg stage2 installer clean
 
 TARGET		=	arm9loaderhax
 PYTHON 		=	python
@@ -7,7 +7,7 @@ OUTDIR		=	data_output
 
 all : $(OUTDIR) hax installer
 
-hax : $(OUTDIR) firm0 firm1 sector screen_init stage2 arm9bootloader
+hax : $(OUTDIR) firm0 firm1 sector arm11bg stage2 arm9bootloader
 
 $(OUTDIR):
 	@[ -d $(OUTDIR) ] || mkdir -p $(OUTDIR)
@@ -27,21 +27,23 @@ sector:
 	@echo SECTOR done!
 
 
-arm9bootloader :
-	@echo make BOOTLOADER
-	@cd bootloader && make
-	@cp bootloader/arm9bootloader.bin $(OUTDIR)/arm9bootloader.bin
-	@echo BOOTLOADER done!
 
-screen_init:
+arm11bg:
 	@[ -d payload_stage2/data ] || mkdir -p payload_stage2/data
-	$(MAKE) -C screen_init
-	@cp screen_init/screen_init.bin payload_stage2/data/
+	$(MAKE) -C arm11bg
+	@cp arm11bg/arm11bg.bin payload_stage2/data/
 
 stage2:
-	@cp screen_init/screen_init.bin payload_stage2/data
+	@cp arm11bg/arm11bg.bin payload_stage2/data
 	@$(MAKE) -C payload_stage2
 	@cp payload_stage2/payload_stage2.bin $(OUTDIR)/stage0x5C000.bin
+
+arm9bootloader :
+	@echo make BOOTLOADER
+	@cp arm11bg/arm11bg.bin bootloader/data/
+	@$(MAKE) -C bootloader
+	@cp bootloader/arm9bootloader.bin $(OUTDIR)/arm9bootloader.bin
+	@echo BOOTLOADER done!
 
 installer:
 	@mkdir payload_installer/brahma2/data/
@@ -55,7 +57,7 @@ installer:
 clean:
 	@echo clean...
 	@$(MAKE) -C payload_stage1 clean
-	@$(MAKE) -C screen_init clean
+	@$(MAKE) -C arm11bg clean
 	@$(MAKE) -C payload_stage2 clean
 	@$(MAKE) -C payload_installer clean TARGET=../$(TARGET)
 	@$(MAKE) -C bootloader clean

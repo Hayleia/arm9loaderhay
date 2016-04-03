@@ -7,7 +7,7 @@ LD=arm-none-eabi-ld
 MV=mv -f
 RM=rm -rf
 
-LIBNAME=screen_init
+LIBNAME=arm11bg
 ELFNAME=$(LIBNAME).elf
 BINNAME=$(LIBNAME).bin
 DATNAME=$(LIBNAME).dat
@@ -32,9 +32,9 @@ OUT_DIR= obj/$(LIBNAME)
 
 .PHONY: clean
 
-all: screen_init.bin
+all: arm11bg.bin
 
-screen_init.bin: $(OBJS)
+arm11bg.bin: $(OBJS)
 	$(CC) -nostartfiles --specs=$(LIBNAME).specs $(OBJS) $(LDFLAGS) -o $(ELFNAME)
 	$(OC) $(OCFLAGS) -O binary $(ELFNAME) $(BINNAME)
 
@@ -57,3 +57,4 @@ ${OUT_DIR}:
 
 clean:
 	rm -rf *.elf *.bin obj/*
+
