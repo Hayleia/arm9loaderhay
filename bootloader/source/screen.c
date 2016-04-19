@@ -1,6 +1,7 @@
 #include "screen.h"
 #include "i2c.h"
 #include "constants.h"
+#include "log.h"
 
 #include "../../arm11bg/source/arm11bg/constants.h"
 
@@ -11,6 +12,7 @@ extern u32 arm11bg_bin_size;
 //default -1 arm11 done
 typedef struct {
     vu32 a11ControllValue;
+    vu32 a11threadRunning;
     vu32 version;
     vu32 brightness;
     vu32 fbTopLeft;
@@ -21,8 +23,9 @@ typedef struct {
 } a11Commands;
 
 //got code for disabeling from CakesForeveryWan
-volatile u32 *a11_entry = (volatile u32 *)0x1FFFFFF8;
-volatile a11Commands* arm11_commands=(volatile a11Commands*)ARM11COMMAND_ADDRESS;
+static volatile u32 *a11_entry = (volatile u32 *)0x1FFFFFF8;
+static a11Commands* arm11_commands=(a11Commands*)ARM11COMMAND_ADDRESS;
+static u32 a11ThreadIsRunning = 0;
 
 void __attribute__((naked)) arm11tmp()
 {
@@ -31,25 +34,35 @@ void __attribute__((naked)) arm11tmp()
     ((void (*)())*a11_entry)();  
 }
 
+u32 isArm11ThreadRunning()
+{
+    if(a11ThreadIsRunning==1)
+        return 1;
+    arm11_commands->a11threadRunning=0;
+    for(volatile unsigned int i = 0; i < 0xF; i++);
+    return arm11_commands->a11threadRunning;
+}
+
 void startArm11BackgroundProcess()
 {
-    /*if(arm11_commands->a11ControllValue!=0xDEADBEEF)
-    {*/
+    if(isArm11ThreadRunning()==0)
+    {
         *a11_entry=(u32)arm11tmp;
-        for(volatile unsigned int i = 0; i < 0xF; ++i); 
+        while(*a11_entry);
         memcpy((void*)A11_PAYLOAD_LOC, arm11bg_bin, arm11bg_bin_size);
         *a11_entry = (u32)A11_PAYLOAD_LOC;
-        for(volatile unsigned int i = 0; i < 0xF; ++i); 
-        
-    //}
+        while(arm11_commands->a11ControllValue!=0xDEADBEEF);
+        a11ThreadIsRunning=1;
+    }
+    
 }
 
 void changeBrightness(u32 _brightness)
 {
-    if(arm11_commands->a11ControllValue!=0xDEADBEEF)
-            startArm11BackgroundProcess();
+    startArm11BackgroundProcess();
     arm11_commands->brightness=_brightness;
     arm11_commands->setBrightness=1;
+    while(arm11_commands->setBrightness==1);
 }
 
 bool screenInit()
@@ -57,10 +70,9 @@ bool screenInit()
     //Check if it's a no-screen-init A9LH boot via PDN_GPU_CNT  
     if (*(u8*)0x10141200 == 0x1)
     {
-        if(arm11_commands->a11ControllValue!=0xDEADBEEF)
-            startArm11BackgroundProcess();
+        startArm11BackgroundProcess();
         arm11_commands->enableLCD=1;
-        for(volatile unsigned int i = 0; i < 0xF; ++i);
+        while(arm11_commands->enableLCD==1);
         i2cWriteRegister(3, 0x22, 0x2A); // 0x2A -> boot into firm with no backlight
         
         *(volatile u32*)0x80FFFC0 = arm11_commands->fbTopLeft;    // framebuffer 1 top left
@@ -76,6 +88,7 @@ bool screenInit()
         *(volatile u32*)0x23FFFE00 = arm11_commands->fbTopLeft;
         *(volatile u32*)0x23FFFE04 = arm11_commands->fbTopRigth;
         *(volatile u32*)0x23FFFE08 = arm11_commands->fbBottom;
+
         return true;
     }
     return false;
@@ -85,9 +98,8 @@ void screenShutdown()
 {
     if(*(u8*)0x10141200 != 0x1)
     {
-        if(arm11_commands->a11ControllValue!=0xDEADBEEF)
-            startArm11BackgroundProcess();
+        startArm11BackgroundProcess();
         arm11_commands->enableLCD=0;
-        for(volatile unsigned int i = 0; i < 0xF; ++i);
+        while(arm11_commands->enableLCD==0);
     }
 }
