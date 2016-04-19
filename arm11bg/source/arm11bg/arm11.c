@@ -1,24 +1,31 @@
+
+/* Arm11 Background Thread */
+// This allows payloads to modifie screen states without the need to include the full screen init binary
+// screen init code by darksamus, AuroraWright and some others 
+// got code for disabeling from CakesForeveryWan
+
+
 #include "constants.h"
 #include "common.h"
 
-//got code for disabeling from CakesForeveryWan
 volatile u32 *a11_entry = (volatile u32 *)0x1FFFFFF8;
 volatile a11Commands* arm11_commands=(volatile a11Commands*)ARM11COMMAND_ADDRESS;
+
 static inline void enable_lcd();
 static inline void disable_lcds(); 
 static inline void a11setBrightness();
+
 void __attribute__((naked)) a11Entry()
 {
-    //__asm__ ("ldr r0,=_stack\n\t mov sp, r0");
     __asm__ (
         "CPSID aif\n\t" //Disable interrupts
         "ldr r0,=_stack\n\t"
         "mov sp, r0"
     );
 
-    *a11_entry = 0;  // Don't wait for us  
+    /* Initialize the arm11 thread commands */
+    *a11_entry = 0;
     a11Commands* arm11commands=(a11Commands*)ARM11COMMAND_ADDRESS;
-    arm11commands->a11ControllValue=0xDEADBEEF;
     arm11commands->version=1;
     arm11commands->setBrightness=-1;
     arm11commands->brightness=DEFAULT_BRIGHTNESS;
@@ -26,11 +33,16 @@ void __attribute__((naked)) a11Entry()
     arm11commands->fbTopLeft=FB_TOP_LEFT;
     arm11commands->fbTopRigth=FB_TOP_RIGHT;
     arm11commands->fbBottom=FB_BOTTOM;
+    arm11commands->a11ControllValue=0xDEADBEEF;
 
+    /* Wait for arm11 entry and commands */
     while (!*a11_entry)
     {
+        /* Check if the command buffer got overwritten */
         if(arm11commands->a11ControllValue==0xDEADBEEF)
         {
+            /* Signalize the thread is alive */
+            arm11commands->a11threadRunning=1;
             if(arm11commands->setBrightness!=-1)
             {
                 a11setBrightness();
@@ -46,12 +58,16 @@ void __attribute__((naked)) a11Entry()
             }
         }
     }
+
+    /* Signalize the bg thread stops and jumps to an a11 entry */
     arm11commands->a11ControllValue=0;
+    arm11commands->a11threadRunning=0;
     ((void (*)())*a11_entry)();  
 }
 
 static inline void disable_lcds()  
 {  
+    /* Disable screen, for example to launch firm */
 	*(volatile u32 *)0x10202A44 = 0;  
 	*(volatile u32 *)0x10202244 = 0;  
 	*(volatile u32 *)0x1020200C = 0;  
@@ -60,31 +76,26 @@ static inline void disable_lcds()
 
 static inline void enable_lcd()
 {
-    /* after test */
-    /*for(int i = 0; i < (SCREEN_SIZE); i++)
+    /* Cleare the frame buffers to be completely sure to not display anything unwanted */
+    for(int i = 0; i < (SCREEN_SIZE); i++)
     {
-        *((unsigned int*)0x18300000 + i) = 0;
-        *((unsigned int*)0x18346500 + i) = 0;
-    }*/
+        *((unsigned int*)FB_TOP_LEFT + i) = 0;
+        *((unsigned int*)FB_TOP_RIGHT + i) = 0;
+        *((unsigned int*)FB_BOTTOM + i) = 0;
+    }
 
-    
-    *((volatile u32*)0x10202240) = ((a11Commands*)ARM11COMMAND_ADDRESS)->brightness;
-    *((volatile u32*)0x10202244) = 0x1023E;
-   
-    *((volatile u32*)0x10202A40) = ((a11Commands*)ARM11COMMAND_ADDRESS)->brightness;
-    *((volatile u32*)0x10202A44) = 0x1023E;
-  
-    
+    /* Starts Screen initialisation */
     *(volatile u32*)0x10141200 = 0x1007F;
     *(volatile u32*)0x10202014 = 0x00000001;
     *(volatile u32*)0x1020200C &= 0xFFFEFFFE;
 
+    /* set brightnes from config field */
     *(volatile u32*)0x10202240 = ((a11Commands*)ARM11COMMAND_ADDRESS)->brightness;
     *(volatile u32*)0x10202A40 = ((a11Commands*)ARM11COMMAND_ADDRESS)->brightness;
     *(volatile u32*)0x10202244 = 0x1023E;
     *(volatile u32*)0x10202A44 = 0x1023E;
 
-    // Top screen
+    /* Top screen */
     *(volatile u32*)0x10400400 = 0x000001c2;
     *(volatile u32*)0x10400404 = 0x000000d1;
     *(volatile u32*)0x10400408 = 0x000001c1;
@@ -118,7 +129,7 @@ static inline void enable_lcd()
     for(volatile u32 i = 0; i < 256; i++)
         *(volatile u32*)0x10400484 = 0x10101 * i;
 
-    // Bottom screen
+    /* Bottom screen */
     *(volatile u32*)0x10400500 = 0x000001c2;
     *(volatile u32*)0x10400504 = 0x000000d1;
     *(volatile u32*)0x10400508 = 0x000001c1;
@@ -152,12 +163,14 @@ static inline void enable_lcd()
     for(volatile u32 i = 0; i < 256; i++)
         *(volatile u32*)0x10400584 = 0x10101 * i;
 
+    /* Set framebuffers */
     *(volatile u32*)0x10400468 = FB_TOP_LEFT;
     *(volatile u32*)0x1040046c = FB_TOP_LEFT;
     *(volatile u32*)0x10400494 = FB_TOP_RIGHT;
     *(volatile u32*)0x10400498 = FB_TOP_RIGHT;
     *(volatile u32*)0x10400568 = FB_BOTTOM;
     *(volatile u32*)0x1040056c = FB_BOTTOM;
+    //(volatile u32*)0x10202000 = 0xffFFFFFF; needed for 3d?
 }
 
 static inline void a11setBrightness()
@@ -168,5 +181,4 @@ static inline void a11setBrightness()
         *((volatile u32*)0x10202A40) = ((a11Commands*)ARM11COMMAND_ADDRESS)->brightness;
     }
 } 
-
 

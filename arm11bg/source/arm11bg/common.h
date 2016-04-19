@@ -14,6 +14,7 @@
 //default -1 arm11 done
 typedef struct {
     vu32 a11ControllValue;
+    vu32 a11threadRunning;
     vu32 version;
     vu32 brightness;
     vu32 fbTopLeft;
