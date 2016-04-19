@@ -17,6 +17,18 @@ bool file_exists(const char* path) {
  	return false; 
 } 
 
+u32 getFileSize(const char *path){
+    FIL fp;
+    u32 size = 0;
+
+    if(f_open(&fp, path, FA_READ) == FR_OK)
+        size = f_size(&fp); 
+
+    f_close(&fp);
+    return size;
+}
+
+
 void getWorkingDirectory(char* str)
 {
 	if(workingDir[0]==0)
@@ -77,7 +89,7 @@ void shutdownScreen()
 
 void setBrightness(u8 brightness)
 {
-	startArm11BackgroundProcess();
+	//startArm11BackgroundProcess();
 	changeBrightness(brightness);
 }
 

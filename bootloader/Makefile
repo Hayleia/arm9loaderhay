@@ -18,9 +18,9 @@ include $(DEVKITARM)/3ds_rules
 #---------------------------------------------------------------------------------
 export TARGET		:=	$(shell basename $(CURDIR))
 BUILD		:=	build
-SOURCES		:=	source source/fatfs source/inih source/fatfs/sdmmc
+SOURCES		:=	source ../libs/fatfs source/inih ../libs/i2c ../libs/fatfs/sdmmc
 DATA		:=	data
-INCLUDES	:=	include source/fatfs source/inih source/fatfs/sdmmc
+INCLUDES	:=	include ../libs/fatfs source/inih ../libs/i2c ../libs/fatfs/sdmmc
 
 #---------------------------------------------------------------------------------
 # Setup some defines
@@ -29,16 +29,17 @@ VERSION		:=	$(shell git describe --abbrev=4 --always --dirty --tags || echo "UNK
 #---------------------------------------------------------------------------------
 # options for code generation
 #---------------------------------------------------------------------------------
-ARCH	:=	-mthumb -mthumb-interwork
+ARCH	:=	-mthumb -mthumb-interwork 
 
+ 
 CFLAGS	:=	-g -Wall -O2\
 			-march=armv5te -mtune=arm946e-s -fomit-frame-pointer\
 			-ffast-math -std=c99\
 			$(ARCH) -DVERSION_STRING="\"$(VERSION)\""
 
 CFLAGS	+=	$(INCLUDE) -DARM9
+CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions 
 
-CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions
 
 ASFLAGS	:=	-g $(ARCH)
 LDFLAGS	=	-nostartfiles -g --specs=../stub.specs $(ARCH) -Wl,-Map,$(TARGET).map

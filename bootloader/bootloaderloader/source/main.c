@@ -1,7 +1,7 @@
 #include "common.h"
-#include "fatfs/sdmmc/sdmmc.h"
+#include "sdmmc.h"
 #include "i2c.h"
-#include "fatfs/ff.h"
+#include "ff.h"
 
 #define BOOTLOADER_PAYLOAD_ADDRESS	0x24F00000
 #define PAYLOAD_SIZE		0x00100000

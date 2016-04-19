@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "fatfs/sdmmc/sdmmc.h"
-#include "fatfs/ff.h"
+#include "sdmmc.h"
+#include "ff.h"
 #include "config.h"
 #include "hid.h"
 #include "log.h"

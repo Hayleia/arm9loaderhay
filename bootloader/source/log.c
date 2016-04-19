@@ -1,7 +1,7 @@
 #include "log.h"
 #include "draw.h"
 
-#include "fatfs/ff.h"
+#include "ff.h"
 #include "i2c.h"
 #include "hid.h"
 #include <stdlib.h>

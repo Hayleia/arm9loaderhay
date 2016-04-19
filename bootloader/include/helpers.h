@@ -2,10 +2,11 @@
 
 #include "common.h"
 #include "config.h"
-#include "../source/fatfs/sdmmc/sdmmc.h"
-#include "../source/fatfs/ff.h"
+#include "sdmmc.h"
+#include "ff.h"
 
 bool file_exists(const char* path);
+u32 getFileSize(const char *path);
 void getWorkingDirectory(char* str);
 void checkFolders(const char* fileName, char* str);
 

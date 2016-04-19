@@ -1,7 +1,7 @@
 #include "common.h"
 #include "sdmmc.h"
 #include "i2c.h"
-#include "fatfs/ff.h"
+#include "ff.h"
 #include "screen_init.h"
 
 #define BOOTLOADER_PAYLOAD_ADDRESS	0x24F00000
