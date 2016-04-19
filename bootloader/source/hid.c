@@ -21,5 +21,5 @@ u32 InputWait() {
 u32 GetInput() { 
     u32 pad_state = HID_STATE; 
     
-    return ~pad_state; 
+    return ~pad_state&0xFFF; 
 }

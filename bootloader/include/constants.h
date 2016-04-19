@@ -17,6 +17,9 @@
 #define TOP_SCREENR (u8*)(*(u32*)(0x23FFFE04))
 #define BOT_SCREEN  (u8*)(*(u32*)(0x23FFFE08))
 
+#define TOP_FB_SIZE (240*400*3)
+#define BOTTOM_FB_SIZE (240*320*3)
+
 #define DEBUGSCREEN BOT_SCREEN
 
 /* Splash constants */
