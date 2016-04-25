@@ -11,7 +11,17 @@
 #define vu32 volatile u32
 #define vu64 volatile u64
 
-//default -1 arm11 done
+#define s8 int8_t
+#define s16 int16_t
+#define s32 int32_t
+#define s64 int64_t
+
+#define vs8 volatile s8
+#define vs16 volatile s16
+#define vs32 volatile s32
+#define vs64 volatile s64
+
+//default -1 arm11 done  
 typedef struct {
     vu32 a11ControllValue;
     vu32 a11threadRunning;
@@ -20,6 +30,8 @@ typedef struct {
     vu32 fbTopLeft;
     vu32 fbTopRigth;
     vu32 fbBottom;
-    volatile int setBrightness;
-    volatile int enableLCD;
+    vs32 setBrightness;
+    vs32 enableLCD;
+    vu32 mode;
+    vs32 changeMode;
 } a11Commands;

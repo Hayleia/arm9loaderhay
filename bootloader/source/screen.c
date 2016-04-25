@@ -9,19 +9,6 @@ extern u8 arm11bg_bin[];
 extern u32 arm11bg_bin_size;
 #define A11_PAYLOAD_LOC     0x1FFF4C80  //keep in mind this needs to be changed in the ld script for screen_init too
 
-//default -1 arm11 done
-typedef struct {
-    vu32 a11ControllValue;
-    vu32 a11threadRunning;
-    vu32 version;
-    vu32 brightness;
-    vu32 fbTopLeft;
-    vu32 fbTopRigth;
-    vu32 fbBottom;
-    volatile int setBrightness;
-    volatile int enableLCD;
-} a11Commands;
-
 //got code for disabeling from CakesForeveryWan
 static volatile u32 *a11_entry = (volatile u32 *)0x1FFFFFF8;
 static a11Commands* arm11_commands=(a11Commands*)ARM11COMMAND_ADDRESS;
@@ -43,10 +30,20 @@ u32 isArm11ThreadRunning()
     return arm11_commands->a11threadRunning;
 }
 
+void setMode(u32 mode)
+{
+    if(arm11_commands->mode!=mode)
+    {
+        arm11_commands->changeMode=mode;
+        while(arm11_commands->changeMode!=-1);
+    }
+
+}
+
 void startArm11BackgroundProcess()
 {
     if(isArm11ThreadRunning()==0)
-    {
+    {   
         *a11_entry=(u32)arm11tmp;
         while(*a11_entry);
         memcpy((void*)A11_PAYLOAD_LOC, arm11bg_bin, arm11bg_bin_size);
@@ -54,7 +51,7 @@ void startArm11BackgroundProcess()
         while(arm11_commands->a11ControllValue!=0xDEADBEEF);
         a11ThreadIsRunning=1;
     }
-    
+    setMode(MODE_MAIN);
 }
 
 void changeBrightness(u32 _brightness)

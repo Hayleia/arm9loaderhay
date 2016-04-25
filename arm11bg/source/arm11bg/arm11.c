@@ -9,11 +9,14 @@
 #include "common.h"
 
 volatile u32 *a11_entry = (volatile u32 *)0x1FFFFFF8;
-volatile a11Commands* arm11_commands=(volatile a11Commands*)ARM11COMMAND_ADDRESS;
+static volatile a11Commands* arm11commands=(volatile a11Commands*)ARM11COMMAND_ADDRESS;
 
+static inline void changeMode();
+static inline void drawMode();
 static inline void enable_lcd();
 static inline void disable_lcds(); 
 static inline void a11setBrightness();
+
 
 void __attribute__((naked)) a11Entry()
 {
@@ -25,7 +28,6 @@ void __attribute__((naked)) a11Entry()
 
     /* Initialize the arm11 thread commands */
     *a11_entry = 0;
-    a11Commands* arm11commands=(a11Commands*)ARM11COMMAND_ADDRESS;
     arm11commands->version=1;
     arm11commands->setBrightness=-1;
     arm11commands->brightness=DEFAULT_BRIGHTNESS;
@@ -33,6 +35,8 @@ void __attribute__((naked)) a11Entry()
     arm11commands->fbTopLeft=FB_TOP_LEFT;
     arm11commands->fbTopRigth=FB_TOP_RIGHT;
     arm11commands->fbBottom=FB_BOTTOM;
+    arm11commands->mode=MODE_MAIN;
+    arm11commands->changeMode=-1;
     arm11commands->a11ControllValue=0xDEADBEEF;
 
     /* Wait for arm11 entry and commands */
@@ -56,6 +60,8 @@ void __attribute__((naked)) a11Entry()
                     enable_lcd();
                 arm11commands->enableLCD=-1;
             }
+            if(arm11commands->changeMode!=-1)
+                changeMode();
         }
     }
 
@@ -65,13 +71,65 @@ void __attribute__((naked)) a11Entry()
     ((void (*)())*a11_entry)();  
 }
 
+static inline void changeMode()
+{
+    switch(arm11commands->changeMode)
+    {
+        case MODE_DRAW:
+                drawMode();
+                break;
+        default:
+                a11Entry();
+                break;
+
+    }
+}
+
+static inline void fastmemcpy(u32* src, u32* target, u32 length)
+{
+    for(u32 i=0;i*4<length;i++)
+    {
+        *target=*src;
+        target++;
+        src++;
+    }
+}
+
+static inline void drawMode()
+{
+    arm11commands->fbTopLeft=0;
+    arm11commands->fbTopRigth=0;
+    arm11commands->fbBottom=0;
+    arm11commands->mode=MODE_DRAW;
+    arm11commands->changeMode=-1;
+    while(arm11commands->changeMode==-1)
+    {
+        if(arm11commands->fbTopLeft!=0)
+        {
+            fastmemcpy((u32*)arm11commands->fbTopLeft,(u32*)FB_TOP_LEFT,SCREEN_SIZE);
+            arm11commands->fbTopLeft=0;
+        }
+        /*if(arm11commands->fbTopRigth!=0)
+        {
+            fastmemcpy((u32*)arm11commands->fbTopRigth,(u32*)FB_TOP_RIGHT,SCREEN_SIZE);
+            arm11commands->fbTopRigth=0;
+        }*/
+        if(arm11commands->fbBottom!=0)
+        {
+            fastmemcpy((u32*)arm11commands->fbBottom,(u32*)FB_BOTTOM,SCREEN_SIZE);
+            arm11commands->fbBottom=0;
+        }
+    }
+    changeMode();
+}
+
 static inline void disable_lcds()  
 {  
     /* Disable screen, for example to launch firm */
-	*(volatile u32 *)0x10202A44 = 0;  
-	*(volatile u32 *)0x10202244 = 0;  
-	*(volatile u32 *)0x1020200C = 0;  
-	*(volatile u32 *)0x10202014 = 0;  
+    *(volatile u32 *)0x10202A44 = 0;  
+    *(volatile u32 *)0x10202244 = 0;  
+    *(volatile u32 *)0x1020200C = 0;  
+    *(volatile u32 *)0x10202014 = 0;  
 } 
 
 static inline void enable_lcd()
@@ -90,8 +148,8 @@ static inline void enable_lcd()
     *(volatile u32*)0x1020200C &= 0xFFFEFFFE;
 
     /* set brightnes from config field */
-    *(volatile u32*)0x10202240 = ((a11Commands*)ARM11COMMAND_ADDRESS)->brightness;
-    *(volatile u32*)0x10202A40 = ((a11Commands*)ARM11COMMAND_ADDRESS)->brightness;
+    *(volatile u32*)0x10202240 = arm11commands->brightness;
+    *(volatile u32*)0x10202A40 = arm11commands->brightness;
     *(volatile u32*)0x10202244 = 0x1023E;
     *(volatile u32*)0x10202A44 = 0x1023E;
 
@@ -177,8 +235,8 @@ static inline void a11setBrightness()
 {
     if(*(u8*)0x10141200 != 0x1)
     {
-        *((volatile u32*)0x10202240) = ((a11Commands*)ARM11COMMAND_ADDRESS)->brightness;           
-        *((volatile u32*)0x10202A40) = ((a11Commands*)ARM11COMMAND_ADDRESS)->brightness;
+        *((volatile u32*)0x10202240) = arm11commands->brightness;           
+        *((volatile u32*)0x10202A40) = arm11commands->brightness;
     }
 } 
 
