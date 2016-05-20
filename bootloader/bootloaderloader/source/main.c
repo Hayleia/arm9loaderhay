@@ -1,12 +1,9 @@
 #include "common.h"
-#include "sdmmc.h"
 #include "i2c.h"
-#include "ff.h"
 
 #define BOOTLOADER_PAYLOAD_ADDRESS	0x24F00000
 #define PAYLOAD_SIZE		0x00100000
 
-FATFS fs;
 extern u8 arm9bootloader_bin[];
 extern u32 arm9bootloader_bin_size;
 
