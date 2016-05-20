@@ -8,6 +8,8 @@
 #include "splash.h"
 #include "helpers.h"
 #include "constants.h"
+#include "payload.h"
+
 
 int main() {
 	FATFS fs;
@@ -42,6 +44,7 @@ int main() {
             .enableSoftbootSplash = DEFAULT_SOFTBOOT_SPLASH,
 	        .screenEnabled = DEFAULT_SCREEN,
 	        .screenBrightness = DEFAULT_BRIGHTNESS,
+	        .fixArm9Path = 0,
     };
 
 	if(f_mount(&fs, "0:", 1) == FR_OK)
@@ -64,10 +67,11 @@ int main() {
 
     	if(loader.enableAutosoftboot>0)
     	{
-    		debug("Opening %s file",LASTESTSETIONFILE);
-			checkFolders(LASTESTSETIONFILE, latestFilePath);
-			if(!isColdboot())
+    		if(!isColdboot())
 			{
+				debug("Opening %s file",LASTESTSETIONFILE);
+				checkFolders(LASTESTSETIONFILE, latestFilePath);
+
 				if (f_open(&latestFile, latestFilePath, FA_READ) == FR_OK)
 				{
 					br=0;
@@ -121,20 +125,8 @@ int main() {
 	            break;
 	    }
 
-		debug("Checking payload");
-		if(app.payload==0)
-		{	
-			panic("Trying to load a 3dsx - this is not supported by arm9");
-		}
-		if(!file_exists(app.path))
-		{
-            panic("Target payload not found: %s",app.path);
-		}
-
-		if(drawSplash(&app))
-		{
-			debug("Splash sucessfully loaded");
-		}
+		checkPayload(app);
+		drawSplash(&app);
 
 		info("Loading Payload: %s",app.path);
 		if(f_open(&payload, app.path, FA_READ | FA_OPEN_EXISTING) == FR_OK)
@@ -143,7 +135,11 @@ int main() {
 			if(app.offset>0)
 				f_lseek (&payload, app.offset);
 			f_read(&payload, (void*)PAYLOAD_ADDRESS, PAYLOAD_SIZE, &br);
+			f_close(&payload);
 			debug("Finished reading the payload");
+
+			if(app.fixArm9Path!=0)
+				patchPath(br, app.path);
 
 		    if(loader.enableAutosoftboot>0&&isColdboot())
 		    {
@@ -156,7 +152,6 @@ int main() {
 			}
 
 			debug("Closing files and unmount sd");
-			f_close(&payload);
    			f_close(&configFile);
 			closeLogFile();
 			f_mount(&fs, "0:", 1);

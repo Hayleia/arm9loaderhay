@@ -30,6 +30,7 @@ typedef struct {
     unsigned int enableSoftbootSplash;
     unsigned int screenEnabled;
     unsigned int screenBrightness;
+    unsigned int fixArm9Path;
 } configuration;
 
 
