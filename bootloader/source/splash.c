@@ -6,6 +6,7 @@
 #include "ff.h"
 #include "constants.h"
 #include "hid.h"
+#include "timer.h"
 
 #include "screen.h"
 #include "../../arm11bg/source/arm11bg/constants.h"
@@ -32,6 +33,8 @@ bool drawBootSplash(loaderConfiguration* loaderConfig)
                 splash_ascii(NULL);
                 break;
         }
+
+        debug("Splash sucessfully loaded");
         return true;
     }
     else
@@ -165,17 +168,16 @@ int splash_anim(char *splash_path)
     setMode(MODE_DRAW);
     a11Commands* arm11_commands=(a11Commands*)ARM11COMMAND_ADDRESS;
 
-    // calculatet number of Timer cicles per second using the 1028 Prescaler
+    // calculatet number of Timer cicles per second using the 1024 Prescaler
     // and divide it throug framerate to get the timer Value for the next frame
-    u32 nextFrameTimerValue=65456/frameRate;
-
-    vu16* timerValue=(vu16*)0x10003000;
-    u16* timerconfig=(u16*)0x10003002;
+    u32 nextFrameTimerValue=TIMERFREQUENCY/1024/frameRate;
+    vu16* timerValue=timerGetValueAddress(0);
 
     *timerValue=0;
     //starts timer and let it use the 1024 prescaler and the count up
     //more informations about the timer: https://www.3dbrew.org/wiki/TIMER_Registers#TIMER_CNT
-    *timerconfig=0b10000111;
+    timerStart(0,PRESCALER_1024);
+    
     for (u32 frame = 0; frame < topScreenFrames; frame++) 
     {   
         if (GetInput() == (KEY_SELECT|KEY_START))
@@ -190,8 +192,7 @@ int splash_anim(char *splash_path)
         arm11_commands->fbTopLeft=TMPSPLASHADDRESS;
 
     }
-    //stop the timer
-    *timerconfig=0b00000111;
+    timerStop(0);
 
     f_close(&topScreenAnimationFile);
 
