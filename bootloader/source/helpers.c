@@ -89,7 +89,6 @@ void shutdownScreen()
 
 void setBrightness(u8 brightness)
 {
-	//startArm11BackgroundProcess();
 	changeBrightness(brightness);
 }
 

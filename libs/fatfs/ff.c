@@ -1648,6 +1648,7 @@ int cmp_lfn (				/* 1:matched, 0:not matched */
 /*-----------------------------------------------------*/
 /* FAT-LFN: Pick a part of file name from an LFN entry */
 /*-----------------------------------------------------*/
+
 static
 int pick_lfn (			/* 1:succeeded, 0:buffer overflow or invalid LFN entry */
 	WCHAR* lfnbuf,		/* Pointer to the LFN working buffer */
@@ -1680,6 +1681,7 @@ int pick_lfn (			/* 1:succeeded, 0:buffer overflow or invalid LFN entry */
 	return 1;		/* The part of LFN is valid */
 }
 #endif
+
 
 #if !_FS_READONLY
 /*-----------------------------------------*/
@@ -1721,6 +1723,7 @@ void put_lfn (
 /*-----------------------------------------------------------------------*/
 /* FAT-LFN: Create a Numbered SFN                                        */
 /*-----------------------------------------------------------------------*/
+
 #if _USE_LFN != 0 && !_FS_READONLY
 static
 void gen_numname (

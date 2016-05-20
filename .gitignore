@@ -1,6 +1,10 @@
 .idea
 CMakeLists.txt
 
+common/*.exe
+playload_installer/brahma2/data
+
+# Output
 data_output
 **/*.bin
 **/*.elf

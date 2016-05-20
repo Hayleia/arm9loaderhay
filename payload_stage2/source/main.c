@@ -1,5 +1,4 @@
 #include "common.h"
-#include "sdmmc.h"
 #include "i2c.h"
 #include "ff.h"
 #include "screen_init.h"
@@ -9,14 +8,15 @@
 #define PAYLOAD_SIZE		0x00100000
 #define A11_PAYLOAD_LOC     0x1FFF4C80  //keep in mind this needs to be changed in the ld script for screen_init too
 #define SCREEN_SIZE 		400 * 240 * 3 / 4 //yes I know this is more than the size of the bootom screen
-#define EMMC_STATUS0 		0x1000601c
+
 
 extern u8 arm11bg_bin[];
 extern u32 arm11bg_bin_size;
 
 void ownArm11()
 {
-    memcpy((void*)A11_PAYLOAD_LOC, arm11bg_bin, arm11bg_bin_size);
+	memcpy((void*)A11_PAYLOAD_LOC, arm11bg_bin, arm11bg_bin_size);
+
 	*((u32*)0x1FFAED80) = 0xE51FF004;
 	*((u32*)0x1FFAED84) = A11_PAYLOAD_LOC;
 	for(int i = 0; i < 0x80000; i++)
@@ -37,18 +37,6 @@ void clearScreen()
 	}
 }
 
-
-
-void checkSD()
-{
-	u16 emmcStatus0 = *((u16*)EMMC_STATUS0);
-	emmcStatus0&=(1<<5);
-	if(emmcStatus0)
-		return;
-	
-	i2cWriteRegister(I2C_DEV_MCU, 0x20, (u8)(1<<0));
-}
-
 void loadAndRunPayload(const char* payloadName, u32 payloadAddress)
 {
 	FIL payload;
@@ -57,8 +45,8 @@ void loadAndRunPayload(const char* payloadName, u32 payloadAddress)
 	{
 		f_read(&payload, (void*)payloadAddress, PAYLOAD_SIZE, (UINT*)&br);
 		ownArm11();
-        screenInit();
-        clearScreen();
+		screenInit();
+		clearScreen();
 		((void (*)())payloadAddress)();
 	}
 }
@@ -66,14 +54,14 @@ void loadAndRunPayload(const char* payloadName, u32 payloadAddress)
 int main()
 {
 	//gateway
-	*(volatile uint32_t*)0x80FFFC0 = 0x18300000;    // framebuffer 1 top left
-	*(volatile uint32_t*)0x80FFFC4 = 0x18300000;    // framebuffer 2 top left
-	*(volatile uint32_t*)0x80FFFC8 = 0x18300000;    // framebuffer 1 top right
-	*(volatile uint32_t*)0x80FFFCC = 0x18300000;    // framebuffer 2 top right
-	*(volatile uint32_t*)0x80FFFD0 = 0x18346500;    // framebuffer 1 bottom
-	*(volatile uint32_t*)0x80FFFD4 = 0x18346500;    // framebuffer 2 bottom
-	*(volatile uint32_t*)0x80FFFD8 = 1;    // framebuffer select top
-	*(volatile uint32_t*)0x80FFFDC = 1;    // framebuffer select bottom
+	*(volatile uint32_t*)0x80FFFC0 = 0x18300000;	// framebuffer 1 top left
+	*(volatile uint32_t*)0x80FFFC4 = 0x18300000;	// framebuffer 2 top left
+	*(volatile uint32_t*)0x80FFFC8 = 0x18300000;	// framebuffer 1 top right
+	*(volatile uint32_t*)0x80FFFCC = 0x18300000;	// framebuffer 2 top right
+	*(volatile uint32_t*)0x80FFFD0 = 0x18346500;	// framebuffer 1 bottom
+	*(volatile uint32_t*)0x80FFFD4 = 0x18346500;	// framebuffer 2 bottom
+	*(volatile uint32_t*)0x80FFFD8 = 1;	// framebuffer select top
+	*(volatile uint32_t*)0x80FFFDC = 1;	// framebuffer select bottom
 
 	//cakehax
 	*(u32*)0x23FFFE00 = 0x18300000;
@@ -81,18 +69,14 @@ int main()
 	*(u32*)0x23FFFE08 = 0x18346500;
 
 	FATFS fs;
-	
-	checkSD();
+	f_mount(&fs, "0:", 0); //This never fails due to deferred mounting
 
-	if(f_mount(&fs, "0:", 0) == FR_OK)
-	{
-		loadAndRunPayload("arm9loaderhax/arm9bootloader.bin", BOOTLOADER_PAYLOAD_ADDRESS);
-		loadAndRunPayload("a9lh/arm9bootloader.bin", BOOTLOADER_PAYLOAD_ADDRESS);
-		loadAndRunPayload("arm9bootloader/arm9bootloader.bin", BOOTLOADER_PAYLOAD_ADDRESS);
-		loadAndRunPayload("arm9bootloader.bin", BOOTLOADER_PAYLOAD_ADDRESS);
-		loadAndRunPayload("arm9loaderhax.bin", PAYLOAD_ADDRESS);
-	}
+	loadAndRunPayload("arm9loaderhax/arm9bootloader.bin", BOOTLOADER_PAYLOAD_ADDRESS);
+	loadAndRunPayload("a9lh/arm9bootloader.bin", BOOTLOADER_PAYLOAD_ADDRESS);
+	loadAndRunPayload("arm9bootloader/arm9bootloader.bin", BOOTLOADER_PAYLOAD_ADDRESS);
+	loadAndRunPayload("arm9bootloader.bin", BOOTLOADER_PAYLOAD_ADDRESS);
+	loadAndRunPayload("arm9loaderhax.bin", PAYLOAD_ADDRESS);
 	
 	i2cWriteRegister(I2C_DEV_MCU, 0x20, (u8)(1<<0));
-    return 0;
+	return 0;
 }
