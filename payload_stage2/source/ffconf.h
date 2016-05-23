@@ -15,7 +15,7 @@
 /  and optional writing functions as well. */
 
 
-#define _FS_MINIMIZE	2
+#define _FS_MINIMIZE	3
 /* This option defines minimization level to remove some basic API functions.
 /
 /   0: All basic functions are enabled.
@@ -99,8 +99,8 @@
 */
 
 
-#define	_USE_LFN	0
-#define	_MAX_LFN	255
+#define	_USE_LFN	1
+#define	_MAX_LFN	42
 /* The _USE_LFN switches the support of long file name (LFN).
 /
 /   0: Disable support of LFN. _MAX_LFN has no effect.
@@ -203,7 +203,7 @@
 / System Configurations
 /---------------------------------------------------------------------------*/
 
-#define	_FS_TINY	0
+#define	_FS_TINY	1
 /* This option switches tiny buffer configuration. (0:Normal or 1:Tiny)
 /  At the tiny configuration, size of the file object (FIL) is reduced _MAX_SS bytes.
 /  Instead of private sector buffer eliminated from the file object, common sector

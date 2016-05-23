@@ -47,122 +47,124 @@ int main() {
 	        .fixArm9Path = 0,
     };
 
-	if(f_mount(&fs, "0:", 1) == FR_OK)
+    setBrightness(0x44);
+	setScreenState(true);
+	debug("test");
+	f_mount(&fs, "0:", 0);
+	
+	if(!openIniFile(&configFile))
+		panic("Config file not found.");
+
+	iniparse(handlerLoaderConfiguration,&loader,&configFile);
+	initLog(loader.fileLog, loader.screenLog);
+	setBrightness(loader.screenBrightness);
+	setScreenState(loader.screenEnabled);
+
+	if(loader.screenEnabled)
 	{
-    	if(!openIniFile(&configFile))
-    		panic("Config file not found.");
+		drawBootSplash(&loader);
+	}
 
-		iniparse(handlerLoaderConfiguration,&loader,&configFile);
-    	initLog(loader.fileLog, loader.screenLog);
-    	setBrightness(loader.screenBrightness);
-    	setScreenState(loader.screenEnabled);
+	debug("Reading [GLOBAL] section");
+	iniparse(handler, &app,&configFile);
 
-    	if(loader.screenEnabled)
-    	{
-			drawBootSplash(&loader);
-    	}
-    	
-    	debug("Reading [GLOBAL] section");
-    	iniparse(handler, &app,&configFile);
-
-    	if(loader.enableAutosoftboot>0)
-    	{
-    		if(!isColdboot())
-			{
-				debug("Opening %s file",LASTESTSETIONFILE);
-				checkFolders(LASTESTSETIONFILE, latestFilePath);
-
-				if (f_open(&latestFile, latestFilePath, FA_READ) == FR_OK)
-				{
-					br=0;
-				    debug("it's softreboot, read %s",LASTESTSETIONFILE);
-					f_gets(latestSection, 15, &latestFile);
-					br=strlen(latestSection);
-					app.section=latestSection;
-					f_close(&latestFile);
-					info("Latest Section: [%s]",app.section);
-				}
-			}
-    	}
-
-    	if(isColdboot() || loader.enableAutosoftboot==0 || br<=4)
-    	{
-	    	info("Wait %llu ms for Input",loader.keyDelay);
-			u32 key = WaitTimeForInput(loader.keyDelay);
-
-	        // using X-macros to generate each switch-case rules
-	        // https://en.wikibooks.org/wiki/C_Programming/Preprocessor#X-Macros
-	        #define KEY(k) \
-	        if(key & KEY_##k) \
-	            app.section = "KEY_"#k; \
-	        else
-	        #include "keys.def"
-	            app.section = "DEFAULT";
-
-	    	info("Key checked-selected section: [%s]",app.section);
-    	}
-
-	    debug("Reading current section");
-	    int config_err = iniparse(handler, &app, &configFile);
-
-	    switch (config_err) {
-	        case 0:
-	            if (strlen(app.path)==0) {
-	            	debug("Section not found, trying to load the [DEFAULT] section");
-	                app.section = "DEFAULT";
-	                // don't need to check error again
-	                iniparse(handler, &app, &configFile);
-	                if (strlen(app.path)==0)
-	                    panic("Section [DEFAULT] not found or \"path\" not set.");
-	            }
-	            break;
-	        case -2:
-	            // should not happen, however better be safe than sorry
-	            panic("Config file is too big.");
-	            break;
-	        default:
-	            panic("Error found in config file, error code %i",config_err);
-	            break;
-	    }
-
-		checkPayload(app);
-		drawSplash(&app);
-
-		info("Loading Payload: %s",app.path);
-		if(f_open(&payload, app.path, FA_READ | FA_OPEN_EXISTING) == FR_OK)
+	if(loader.enableAutosoftboot>0)
+	{
+		if(!isColdboot())
 		{
-			debug("Reading payload at offset %i",app.offset);
-			if(app.offset>0)
-				f_lseek (&payload, app.offset);
-			f_read(&payload, (void*)PAYLOAD_ADDRESS, PAYLOAD_SIZE, &br);
-			f_close(&payload);
-			debug("Finished reading the payload");
+			debug("Opening %s file",LASTESTSETIONFILE);
+			checkFolders(LASTESTSETIONFILE, latestFilePath);
 
-			if(app.fixArm9Path!=0)
-				patchPath(br, app.path);
-
-		    if(loader.enableAutosoftboot>0&&isColdboot())
-		    {
-		    	if(f_open(&latestFile, latestFilePath, FA_READ | FA_WRITE | FA_CREATE_ALWAYS )==FR_OK)
-		    	{
-			    	debug("Writing latest section to file: [%s]",app.section);
-					f_puts (app.section, &latestFile);
-					f_close(&latestFile);
-				}           
+			if (f_open(&latestFile, latestFilePath, FA_READ) == FR_OK)
+			{
+				br=0;
+			    debug("it's softreboot, read %s",LASTESTSETIONFILE);
+				f_gets(latestSection, 15, &latestFile);
+				br=strlen(latestSection);
+				app.section=latestSection;
+				f_close(&latestFile);
+				info("Latest Section: [%s]",app.section);
 			}
-
-			debug("Closing files and unmount sd");
-   			f_close(&configFile);
-			closeLogFile();
-			f_mount(&fs, "0:", 1);
-
-			debug("Configuring and jumping to the payload");
-			setScreenState(app.screenEnabled);
-    		setBrightness(app.screenBrightness);
-
-			((void (*)())PAYLOAD_ADDRESS)();
-			panic("Failed to jump to the Payload");
 		}
+	}
+
+	if(isColdboot() || loader.enableAutosoftboot==0 || br<=4)
+	{
+		info("Wait %llu ms for Input",loader.keyDelay);
+		u32 key = WaitTimeForInput(loader.keyDelay);
+
+	    // using X-macros to generate each switch-case rules
+	    // https://en.wikibooks.org/wiki/C_Programming/Preprocessor#X-Macros
+	    #define KEY(k) \
+	    if(key & KEY_##k) \
+	        app.section = "KEY_"#k; \
+	    else
+	    #include "keys.def"
+	        app.section = "DEFAULT";
+
+		info("Key checked-selected section: [%s]",app.section);
+	}
+
+	debug("Reading current section");
+	int config_err = iniparse(handler, &app, &configFile);
+
+	switch (config_err) {
+	    case 0:
+	        if (strlen(app.path)==0) {
+	        	debug("Section not found, trying to load the [DEFAULT] section");
+	            app.section = "DEFAULT";
+	            // don't need to check error again
+	            iniparse(handler, &app, &configFile);
+	            if (strlen(app.path)==0)
+	                panic("Section [DEFAULT] not found or \"path\" not set.");
+	        }
+	        break;
+	    case -2:
+	        // should not happen, however better be safe than sorry
+	        panic("Config file is too big.");
+	        break;
+	    default:
+	        panic("Error found in config file, error code %i",config_err);
+	        break;
+	}
+
+	checkPayload(app);
+	drawSplash(&app);
+
+	info("Loading Payload: %s",app.path);
+	if(f_open(&payload, app.path, FA_READ | FA_OPEN_EXISTING) == FR_OK)
+	{
+		debug("Reading payload at offset %i",app.offset);
+		if(app.offset>0)
+			f_lseek (&payload, app.offset);
+		f_read(&payload, (void*)PAYLOAD_ADDRESS, PAYLOAD_SIZE, &br);
+		f_close(&payload);
+		debug("Finished reading the payload");
+
+		if(app.fixArm9Path!=0)
+			patchPath(br, app.path);
+
+	    if(loader.enableAutosoftboot>0&&isColdboot())
+	    {
+	    	if(f_open(&latestFile, latestFilePath, FA_READ | FA_WRITE | FA_CREATE_ALWAYS )==FR_OK)
+	    	{
+		    	debug("Writing latest section to file: [%s]",app.section);
+				f_puts (app.section, &latestFile);
+				f_close(&latestFile);
+			}           
+		}
+
+		debug("Closing files and unmount sd");
+		f_close(&configFile);
+		closeLogFile();
+		f_mount(&fs, "0:", 1);
+
+		debug("Configuring and jumping to the payload");
+		setScreenState(app.screenEnabled);
+		setBrightness(app.screenBrightness);
+
+		((void (*)())PAYLOAD_ADDRESS)();
+		panic("Failed to jump to the Payload");
 	}
 	panic("Failed to mount the sd-card");
 	return 0;
