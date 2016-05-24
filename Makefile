@@ -1,14 +1,16 @@
-.PHONY : all hax stage2_update firm0 firm1 sector arm11bg stage2 installer clean
+.PHONY : all hax bootloader stage2_update firm0 firm1 sector arm11bg stage2 installer clean
 TARGET		=	arm9loaderhax
 PYTHON 		=	python
 INDIR		=	data_input
 OUTDIR		=	data_output
 PACKTOOL	=	common/pack_tool
 
-all : $(OUTDIR) hax installer
+all : $(OUTDIR) hax bootloader installer
 
-hax : $(OUTDIR) firm0 firm1 sector arm11bg stage2 arm9bootloader package
+hax : $(OUTDIR) firm0 firm1 sector arm11bg stage2 package
 	@cd payload_installer/installer && make TARGET=../../$(OUTDIR)/$(TARGET)
+
+bootloader : $(OUTDIR) arm11bg arm9bootloader
 
 stage2_update: $(OUTDIR) $(PACKTOOL) stage2 
 	@$(PACKTOOL) null null null $(OUTDIR)/stage0x5C000.bin
@@ -29,7 +31,6 @@ firm1:
 
 sector:
 	@$(PYTHON) common/sector_generator.py $(INDIR)/secret_sector.bin $(INDIR)/otp.bin $(OUTDIR)/sector.bin
-
 
 
 arm11bg:
@@ -53,6 +54,7 @@ $(PACKTOOL):
 
 arm9bootloader :
 	@echo make BOOTLOADER
+	@[ -d bootloader/data ] || mkdir -p bootloader/data
 	@cp arm11bg/arm11bg.bin bootloader/data/
 	@$(MAKE) -C bootloader
 	@cp bootloader/arm9bootloader.bin $(OUTDIR)/arm9bootloader.bin

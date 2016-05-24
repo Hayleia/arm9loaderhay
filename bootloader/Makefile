@@ -107,6 +107,7 @@ $(BUILD):
 	mv $(OUTPUT).bin arm9bootloader.bin
 
 bootloaderLoader:
+	@[ -d bootloaderloader/data ] || mkdir -p bootloaderloader/data
 	@cp arm9bootloader.bin bootloaderloader/data/arm9bootloader.bin
 	@echo make BOOTLOADERLOADER
 	@cd bootloaderloader && make
