@@ -1495,7 +1495,7 @@ FRESULT dir_next (	/* FR_OK(0):succeeded, FR_NO_FILE:End of table, FR_DENIED:Cou
 					if (_FS_EXFAT) dp->obj.stat |= 4;			/* The directory needs to be updated */
 					if (sync_window(fs) != FR_OK) return FR_DISK_ERR;	/* Flush disk access window */
 					mem_set(fs->win, 0, SS(fs));				/* Clear window buffer */
-					for (n = 0, fs->winsect = clust2sect(fs, clst); n < fs->csize; n++, fs->winsect++) {	/* Fill the new cluster with 0 */
+					for (n = fs->csize, fs->winsect = clust2sect(fs, clst); n ; n--, fs->winsect++) {	/* Fill the new cluster with 0 */
 						fs->wflag = 1;
 						if (sync_window(fs) != FR_OK) return FR_DISK_ERR;
 					}
@@ -1745,7 +1745,9 @@ void gen_numname (
 		sr = seq;
 		while (*lfn) {	/* Create a CRC */
 			wc = *lfn++;
-			for (i = 0; i < 16; i++) {
+			i=16;
+			while(i--)
+			{
 				sr = (sr << 1) + (wc & 1);
 				wc >>= 1;
 				if (sr & 0x10000) sr ^= 0x11021;
@@ -2560,7 +2562,8 @@ FRESULT create_name (	/* FR_OK: successful, FR_INVALID_NAME: could not create */
 	if ((di == 1 && lfn[di - 1] == '.') ||
 		(di == 2 && lfn[di - 1] == '.' && lfn[di - 2] == '.')) {	/* Is this segment a dot name? */
 		lfn[di] = 0;
-		for (i = 0; i < 11; i++)		/* Create dot name for SFN entry */
+		i=11;
+		while(i--)		/* Create dot name for SFN entry */
 			dp->fn[i] = (i < di) ? '.' : ' ';
 		dp->fn[i] = cf | NS_DOT;		/* This is a dot entry */
 		return FR_OK;

@@ -8,6 +8,9 @@
 #include "constants.h"
 #include "common.h"
 
+// Define A11 Commands Struct
+ARM11_COMMANDS
+
 volatile u32 *a11_entry = (volatile u32 *)0x1FFFFFF8;
 static volatile a11Commands* arm11commands=(volatile a11Commands*)ARM11COMMAND_ADDRESS;
 
@@ -29,14 +32,18 @@ void __attribute__((naked)) a11Entry()
     /* Initialize the arm11 thread commands */
     *a11_entry = 0;
     arm11commands->version=1;
-    arm11commands->setBrightness=-1;
+    
+    arm11commands->setBrightness=ARM11_DONE;
     arm11commands->brightness=DEFAULT_BRIGHTNESS;
-    arm11commands->enableLCD=-1;
+
+    arm11commands->enableLCD=ARM11_DONE;
     arm11commands->fbTopLeft=FB_TOP_LEFT;
     arm11commands->fbTopRigth=FB_TOP_RIGHT;
     arm11commands->fbBottom=FB_BOTTOM;
+
+    arm11commands->changeMode=ARM11_DONE;
     arm11commands->mode=MODE_MAIN;
-    arm11commands->changeMode=-1;
+    
     arm11commands->a11ControllValue=0xDEADBEEF;
 
     /* Wait for arm11 entry and commands */
@@ -47,20 +54,22 @@ void __attribute__((naked)) a11Entry()
         {
             /* Signalize the thread is alive */
             arm11commands->a11threadRunning=1;
-            if(arm11commands->setBrightness!=-1)
+            if(arm11commands->setBrightness)
             {
                 a11setBrightness();
-                arm11commands->setBrightness=-1;
+
+                arm11commands->setBrightness=ARM11_DONE;
             }
-            if(arm11commands->enableLCD!=-1)
+            if(arm11commands->enableLCD)
             {
-                if(arm11commands->enableLCD==0)
+                if(arm11commands->enableLCD==DISABLE_SCREEN)
                     disable_lcds();
-                if(arm11commands->enableLCD==1)
+                if(arm11commands->enableLCD==ENABLE_SCREEN)
                     enable_lcd();
-                arm11commands->enableLCD=-1;
+
+                arm11commands->enableLCD=ARM11_DONE;
             }
-            if(arm11commands->changeMode!=-1)
+            if(arm11commands->changeMode)
                 changeMode();
         }
     }
@@ -87,7 +96,8 @@ static inline void changeMode()
 
 static inline void fastmemcpy(u32* src, u32* target, u32 length)
 {
-    for(u32 i=0;i*4<length;i++)
+    length/=4;
+    while(length--)
     {
         *target=*src;
         target++;
@@ -101,10 +111,10 @@ static inline void drawMode()
     arm11commands->fbTopRigth=0;
     arm11commands->fbBottom=0;
     arm11commands->mode=MODE_DRAW;
-    arm11commands->changeMode=-1;
-    while(arm11commands->changeMode==-1)
+    arm11commands->changeMode=ARM11_DONE;
+    while(!arm11commands->changeMode)
     {
-        if(arm11commands->fbTopLeft!=0)
+        if(arm11commands->fbTopLeft)
         {
             fastmemcpy((u32*)arm11commands->fbTopLeft,(u32*)FB_TOP_LEFT,SCREEN_SIZE);
             arm11commands->fbTopLeft=0;
@@ -114,7 +124,7 @@ static inline void drawMode()
             fastmemcpy((u32*)arm11commands->fbTopRigth,(u32*)FB_TOP_RIGHT,SCREEN_SIZE);
             arm11commands->fbTopRigth=0;
         }*/
-        if(arm11commands->fbBottom!=0)
+        if(arm11commands->fbBottom)
         {
             fastmemcpy((u32*)arm11commands->fbBottom,(u32*)FB_BOTTOM,SCREEN_SIZE);
             arm11commands->fbBottom=0;
@@ -135,7 +145,8 @@ static inline void disable_lcds()
 static inline void enable_lcd()
 {
     /* Cleare the frame buffers to be completely sure to not display anything unwanted */
-    for(int i = 0; i < (SCREEN_SIZE); i++)
+    int i=SCREEN_SIZE/4;
+    while(i--)
     {
         *((unsigned int*)FB_TOP_LEFT + i) = 0;
         *((unsigned int*)FB_TOP_RIGHT + i) = 0;

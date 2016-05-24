@@ -6,7 +6,7 @@
 void checkPayload(configuration app)
 {
 	debug("Checking payload");
-	if(app.payload==0)
+	if(!app.payload)
 	{	
 		panic("Trying to load a 3dsx - this is not supported by arm9");
 	}
@@ -25,7 +25,7 @@ int patchPath(u32 size,const char *path)
 	{
 		if((*(u8 *)(PAYLOAD_ADDRESS+i))==pattern[0] && (*(u8 *)(PAYLOAD_ADDRESS+i+1))==pattern[1])
 		{
-			if(memcmp(pattern,(char *)(PAYLOAD_ADDRESS+i),12)==0)
+			if(!memcmp(pattern,(char *)(PAYLOAD_ADDRESS+i),12))
 			{
 				u32 strgsize=strlen(path);
 				u32 shift=10;

@@ -18,7 +18,7 @@ int myAtoi(const char *str)
   
   	if(isnegativ)
   		res*=-1;
-    // return result.
+    
     return res;
 }
 int chartoint(int c)
@@ -42,7 +42,6 @@ unsigned int htoi(const char s[])
 {
     unsigned int result = 0;
     int i = 0;
-    int proper = 1;
     int temp;
 
     //To take care of 0x and 0X added before the hex no.
@@ -55,7 +54,7 @@ unsigned int htoi(const char s[])
         }
     }
 
-    while(proper && s[i] != '\0')
+    while(s[i] != '\0')
     {
         result = result * 16;
         if(s[i] >= '0' && s[i] <= '9')
@@ -65,22 +64,15 @@ unsigned int htoi(const char s[])
         else
         {
             temp = chartoint(s[i]);
-            if(temp == 0)
+            if(!temp)
             {
-                proper = 0;
+                //If any character is not a proper hex no. ,  return 0
+                return 0;
             }
-            else
-            {
-                result = result + temp;
-            }
+            result = result + temp;
         }
 
         ++i;
-    }
-    //If any character is not a proper hex no. ,  return 0
-    if(!proper)
-    {
-        result = 0;
     }
 
     return result;

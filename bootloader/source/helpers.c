@@ -31,7 +31,7 @@ u32 getFileSize(const char *path){
 
 void getWorkingDirectory(char* str)
 {
-	if(workingDir[0]==0)
+	if(!workingDir[0])
 	{
 		debug("Checking for target workingDir");
 		char* supportedFolders[]={SUPPORTEDFOLDERS};

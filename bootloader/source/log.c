@@ -40,7 +40,7 @@ void openLogFile()
 
 void closeLogFile()
 {	
-	if(fileLoggingEnabled==true)
+	if(fileLoggingEnabled)
 	{
 		f_close(&logFile);
 		fileLoggingEnabled=false;

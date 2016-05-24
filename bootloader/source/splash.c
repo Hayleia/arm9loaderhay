@@ -11,12 +11,15 @@
 #include "screen.h"
 #include "../../arm11bg/source/arm11bg/constants.h"
 
+// Define A11 Commands Struct
+ARM11_COMMANDS
+
 bool drawBootSplash(loaderConfiguration* loaderConfig)
 {
-    if(!isColdboot()&&loaderConfig->enableSoftbootSplash==0)
+    if(!isColdboot()&&!loaderConfig->enableSoftbootSplash)
         return false;
 
-    if(loaderConfig->bootsplash>0)
+    if(loaderConfig->bootsplash)
     {
         switch(loaderConfig->bootsplash)
         {/* 0 - disabled, 1 - splash screen, 2 - entry info, 3 - both */ 
@@ -43,10 +46,10 @@ bool drawBootSplash(loaderConfiguration* loaderConfig)
 
 bool drawSplash(configuration* app)
 {
-    if(!isColdboot()&&app->enableSoftbootSplash==0)
+    if(!isColdboot()&&!app->enableSoftbootSplash)
         return false;
     
-    if(app->splash>0)
+    if(app->splash)
     {
         switch(app->splash)
         {/* 0 - disabled, 1 - splash screen, 2 - entry info, 3 - both */ 
@@ -100,7 +103,7 @@ int splash_image(char *splash_path)
     // load image in memory, doing proper error checking
     FIL splash_file;
     unsigned int br;
-    if(strlen(splash_path)==0)
+    if(!strlen(splash_path))
     {
         debug("Splash image not set, use default screen");
         return -1;
@@ -128,7 +131,7 @@ int splash_anim(char *splash_path)
     u32 frameRateConfigurationFileSize=0;
     char frameRateConfigurationPath[64]={0};
 
-    if(strlen(splash_path)==0)
+    if(!strlen(splash_path))
     {
         debug("Splash image not set, using default screen instead");
         return -1;
@@ -147,13 +150,13 @@ int splash_anim(char *splash_path)
 
     sprintf(frameRateConfigurationPath,"%s.cfg",splash_path);
     frameRateConfigurationFileSize=getFileSize(frameRateConfigurationPath);
-    if(frameRateConfigurationFileSize>0)
+    if(frameRateConfigurationFileSize)
     {
         f_open(&FrameRateConfigurationFile, frameRateConfigurationPath, FA_READ);
         f_read(&FrameRateConfigurationFile, &frameRate, 1, &br);
         f_close(&FrameRateConfigurationFile);
 
-        if(frameRate==0)
+        if(!frameRate)
             frameRate=0x0F;
     }
 
@@ -177,11 +180,11 @@ int splash_anim(char *splash_path)
     //starts timer and let it use the 1024 prescaler and the count up
     //more informations about the timer: https://www.3dbrew.org/wiki/TIMER_Registers#TIMER_CNT
     timerStart(0,PRESCALER_1024);
-    
-    for (u32 frame = 0; frame < topScreenFrames; frame++) 
+    u32 frame = topScreenFrames;
+    while(frame--) 
     {   
         if (GetInput() == (KEY_SELECT|KEY_START))
-            frame = topScreenFrames;
+            frame = 0;
 
         //Read to temporary buffer , wait for the next frame and let arm11 write it to the Frame buffer to minimize Tearing
         f_read(&topScreenAnimationFile, (void*)TMPSPLASHADDRESS, TOP_FB_SIZE, &br);

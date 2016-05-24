@@ -8,9 +8,12 @@
 extern u8 arm11bg_bin[];
 extern u32 arm11bg_bin_size;
 #define A11_PAYLOAD_LOC     0x1FFF4C80  //keep in mind this needs to be changed in the ld script for screen_init too
+// Define A11 Commands Struct
+ARM11_COMMANDS
 
 //got code for disabeling from CakesForeveryWan
 static volatile u32 *a11_entry = (volatile u32 *)0x1FFFFFF8;
+
 static a11Commands* arm11_commands=(a11Commands*)ARM11COMMAND_ADDRESS;
 static u32 a11ThreadIsRunning = 0;
 
@@ -23,7 +26,7 @@ void __attribute__((naked)) arm11tmp()
 
 u32 isArm11ThreadRunning()
 {
-    if(a11ThreadIsRunning==1)
+    if(a11ThreadIsRunning)
         return 1;
     arm11_commands->a11threadRunning=0;
     for(volatile unsigned int i = 0; i < 0xF; i++);
@@ -35,14 +38,14 @@ void setMode(u32 mode)
     if(arm11_commands->mode!=mode)
     {
         arm11_commands->changeMode=mode;
-        while(arm11_commands->changeMode!=-1);
+        while(arm11_commands->changeMode);
     }
 
 }
 
 void startArm11BackgroundProcess()
 {
-    if(isArm11ThreadRunning()==0)
+    if(!isArm11ThreadRunning())
     {   
         *a11_entry=(u32)arm11tmp;
         while(*a11_entry);
@@ -59,7 +62,7 @@ void changeBrightness(u32 _brightness)
     startArm11BackgroundProcess();
     arm11_commands->brightness=_brightness;
     arm11_commands->setBrightness=1;
-    while(arm11_commands->setBrightness==1);
+    while(arm11_commands->setBrightness);
 }
 
 bool screenInit()
@@ -68,8 +71,8 @@ bool screenInit()
     if (*(u8*)0x10141200 == 0x1)
     {
         startArm11BackgroundProcess();
-        arm11_commands->enableLCD=1;
-        while(arm11_commands->enableLCD==1);
+        arm11_commands->enableLCD=ENABLE_SCREEN;
+        while(arm11_commands->enableLCD);
         i2cWriteRegister(3, 0x22, 0x2A); // 0x2A -> boot into firm with no backlight
         
         *(volatile u32*)0x80FFFC0 = arm11_commands->fbTopLeft;    // framebuffer 1 top left
@@ -96,7 +99,7 @@ void screenShutdown()
     if(*(u8*)0x10141200 != 0x1)
     {
         startArm11BackgroundProcess();
-        arm11_commands->enableLCD=0;
-        while(arm11_commands->enableLCD==0);
+        arm11_commands->enableLCD=DISABLE_SCREEN;
+        while(arm11_commands->enableLCD);
     }
 }

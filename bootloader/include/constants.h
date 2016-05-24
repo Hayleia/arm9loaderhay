@@ -42,9 +42,11 @@
 #define DEFAULT_PATH 		{0}
 #define DEFAULT_KEYDELAY	100 /* ms */
 #define DEFAULT_PAYLOAD 	-1 /* <0 - auto, 0 - 3dsx(not supported) , >0 - arm9Payload */
-#define DEFAULT_OFFSET 		0x12000
+#define DEFAULT_OFFSET 		0x0
 #define DEFAULT_SPLASH 		0 /* 0 - disabled, 1 - splash screen, 2 - entry info, 3 - both */ 
 #define DEFAULT_SPLASH_IMAGE {0} 
 #define DEFAULT_SCREEN 		1
 #define DEFAULT_BRIGHTNESS		0xFF
 #define DEFAULT_SOFTBOOT_SPLASH 0
+
+#define COMPANION_SECTION "COMPANION"

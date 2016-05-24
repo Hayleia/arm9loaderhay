@@ -68,7 +68,7 @@ int main() {
 	debug("Reading [GLOBAL] section");
 	iniparse(handler, &app,&configFile);
 
-	if(loader.enableAutosoftboot>0)
+	if(loader.enableAutosoftboot)
 	{
 		if(!isColdboot())
 		{
@@ -88,7 +88,7 @@ int main() {
 		}
 	}
 
-	if(isColdboot() || loader.enableAutosoftboot==0 || br<=4)
+	if(isColdboot() || !loader.enableAutosoftboot || br<=4)
 	{
 		info("Wait %llu ms for Input",loader.keyDelay);
 		u32 key = WaitTimeForInput(loader.keyDelay);
@@ -110,12 +110,12 @@ int main() {
 
 	switch (config_err) {
 	    case 0:
-	        if (strlen(app.path)==0) {
+	        if (!strlen(app.path)) {
 	        	debug("Section not found, trying to load the [DEFAULT] section");
 	            app.section = "DEFAULT";
 	            // don't need to check error again
 	            iniparse(handler, &app, &configFile);
-	            if (strlen(app.path)==0)
+	            if (!strlen(app.path))
 	                panic("Section [DEFAULT] not found or \"path\" not set.");
 	        }
 	        break;
@@ -135,16 +135,16 @@ int main() {
 	if(f_open(&payload, app.path, FA_READ | FA_OPEN_EXISTING) == FR_OK)
 	{
 		debug("Reading payload at offset %i",app.offset);
-		if(app.offset>0)
+		if(app.offset)
 			f_lseek (&payload, app.offset);
 		f_read(&payload, (void*)PAYLOAD_ADDRESS, PAYLOAD_SIZE, &br);
 		f_close(&payload);
 		debug("Finished reading the payload");
 
-		if(app.fixArm9Path!=0)
+		if(app.fixArm9Path)
 			patchPath(br, app.path);
 
-	    if(loader.enableAutosoftboot>0&&isColdboot())
+	    if(loader.enableAutosoftboot&&isColdboot())
 	    {
 	    	if(f_open(&latestFile, latestFilePath, FA_READ | FA_WRITE | FA_CREATE_ALWAYS )==FR_OK)
 	    	{
