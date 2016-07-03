@@ -30,7 +30,6 @@ extern "C" {
 #endif
 
 
-
 /* Definitions of volume management */
 
 #if _MULTI_PARTITION		/* Multiple partition configuration */

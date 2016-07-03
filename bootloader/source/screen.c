@@ -1,7 +1,6 @@
 #include "screen.h"
 #include "i2c.h"
 #include "constants.h"
-#include "log.h"
 
 #include "../../arm11bg/source/arm11bg/constants.h"
 
@@ -19,9 +18,9 @@ static u32 a11ThreadIsRunning = 0;
 
 void __attribute__((naked)) arm11tmp()
 {
-    *a11_entry = 0;  // Don't wait for us  
+    *a11_entry = 0;  // Don't wait for us
     while (!*a11_entry);
-    ((void (*)())*a11_entry)();  
+    ((void (*)())*a11_entry)();
 }
 
 u32 isArm11ThreadRunning()
@@ -46,7 +45,7 @@ void setMode(u32 mode)
 void startArm11BackgroundProcess()
 {
     if(!isArm11ThreadRunning())
-    {   
+    {
         *a11_entry=(u32)arm11tmp;
         while(*a11_entry);
         memcpy((void*)A11_PAYLOAD_LOC, arm11bg_bin, arm11bg_bin_size);
@@ -67,14 +66,14 @@ void changeBrightness(u32 _brightness)
 
 bool screenInit()
 {
-    //Check if it's a no-screen-init A9LH boot via PDN_GPU_CNT  
+    //Check if it's a no-screen-init A9LH boot via PDN_GPU_CNT
     if (*(u8*)0x10141200 == 0x1)
     {
         startArm11BackgroundProcess();
         arm11_commands->enableLCD=ENABLE_SCREEN;
         while(arm11_commands->enableLCD);
         i2cWriteRegister(3, 0x22, 0x2A); // 0x2A -> boot into firm with no backlight
-        
+
         *(volatile u32*)0x80FFFC0 = arm11_commands->fbTopLeft;    // framebuffer 1 top left
         *(volatile u32*)0x80FFFC4 = arm11_commands->fbTopLeft;    // framebuffer 2 top left
         *(volatile u32*)0x80FFFC8 = arm11_commands->fbTopRigth;    // framebuffer 1 top right
@@ -84,7 +83,7 @@ bool screenInit()
         *(volatile u32*)0x80FFFD8 = 1;    // framebuffer select top
         *(volatile u32*)0x80FFFDC = 1;    // framebuffer select bottom
 
-        //cakehax  
+        //cakehax
         *(volatile u32*)0x23FFFE00 = arm11_commands->fbTopLeft;
         *(volatile u32*)0x23FFFE04 = arm11_commands->fbTopRigth;
         *(volatile u32*)0x23FFFE08 = arm11_commands->fbBottom;

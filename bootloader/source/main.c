@@ -2,170 +2,124 @@
 #include <stdlib.h>
 #include "sdmmc.h"
 #include "ff.h"
-#include "config.h"
+//#include "config.h"
 #include "hid.h"
-#include "log.h"
-#include "splash.h"
+//#include "log.h"
+//#include "splash.h"
 #include "helpers.h"
-#include "constants.h"
-#include "payload.h"
+//#include "constants.h"
+//#include "payload.h"
 
+#define PAYLOAD_ADDRESS		0x23F00000
+#define PAYLOAD_SIZE		0x00100000
+#define A11_PAYLOAD_LOC     0x1FFF8000  //keep in mind this needs to be changed in the ld script for screen_init too
 
-int main() {
-	FATFS fs;
-	FIL configFile;
-	FIL payload;
-	FIL latestFile;
-	char latestFilePath[32]={0};
-	char latestSection[15]={0};
-	unsigned int br=0;
+//used to detect if we are cold booting
+#define CFG_BOOTENV			0x10010000
+#define COLDBOOT			0
 
-    loaderConfiguration loader =  {
-	        .section = LOADER_SECTION,
-	        .keyDelay = DEFAULT_KEYDELAY,
-	        .bootsplash = DEFAULT_BOOTSPLASH, 
-            .bootsplash_image = DEFAULT_BOOTSPLASH_IMAGE,
-            .enableSoftbootSplash = DEFAULT_SOFTBOOT_SPLASH_LOADER,
-            .enableAutosoftboot = DEFAULT_AUTOSOFTBOOT,
-            .fileLog = DEFAULT_LOG_FILE,
-            .screenLog = DEFAULT_LOG_SCREEN,
-	        .screenEnabled = DEFAULT_SCREEN,
-	        .screenBrightness = DEFAULT_BOOTBRIGHTNESS,
-    };
+static inline void jump()
+{
+	((void (*)())PAYLOAD_ADDRESS)();
+}
 
-	configuration app =  {
-	        .section = DEFAULT_SECTION,
-	        .path = DEFAULT_PATH,
-	        .splashDelay = DEFAULT_SPLASHDELAY,
-	        .payload = DEFAULT_PAYLOAD,
-	        .offset = DEFAULT_OFFSET,
-	        .splash = DEFAULT_SPLASH, 
-            .splash_image = DEFAULT_SPLASH_IMAGE,
-            .enableSoftbootSplash = DEFAULT_SOFTBOOT_SPLASH,
-	        .screenEnabled = DEFAULT_SCREEN,
-	        .screenBrightness = DEFAULT_BRIGHTNESS,
-	        .fixArm9Path = 0,
-    };
-
-    setBrightness(0x44);
-	setScreenState(true);
-	debug("test");
-	f_mount(&fs, "0:", 0);
-	
-	if(!openIniFile(&configFile))
-		panic("Config file not found.");
-
-	iniparse(handlerLoaderConfiguration,&loader,&configFile);
-	initLog(loader.fileLog, loader.screenLog);
-	setBrightness(loader.screenBrightness);
-	setScreenState(loader.screenEnabled);
-
-	if(loader.screenEnabled)
+void jumpAndTryEnableBL(char *file)
+{
+	FIL f;
+	if(f_open(&f, file, FA_READ | FA_OPEN_EXISTING) == FR_OK)
 	{
-		drawBootSplash(&loader);
+		setBrightness(0x44);
+		f_close(&f);
 	}
+	jump();
+}
 
-	debug("Reading [GLOBAL] section");
-	iniparse(handler, &app,&configFile);
-
-	if(loader.enableAutosoftboot)
+int tryLoadFile(char *file)
+{
+	FIL f;
+	UINT br;
+	if(f_open(&f, file, FA_READ | FA_OPEN_EXISTING) == FR_OK)
 	{
-		if(!isColdboot())
-		{
-			debug("Opening %s file",LASTESTSETIONFILE);
-			checkFolders(LASTESTSETIONFILE, latestFilePath);
+		f_read(&f, (void*)PAYLOAD_ADDRESS, PAYLOAD_SIZE, &br);
+		f_close(&f);
+		return 1;
+	}
+	return 0;
+}
 
-			if (f_open(&latestFile, latestFilePath, FA_READ) == FR_OK)
-			{
-				br=0;
-			    debug("it's softreboot, read %s",LASTESTSETIONFILE);
-				f_gets(latestSection, 15, &latestFile);
-				br=strlen(latestSection);
-				app.section=latestSection;
-				f_close(&latestFile);
-				info("Latest Section: [%s]",app.section);
+int main()
+{
+	setBrightness(0);
+	setScreenState(true);
+
+	FATFS fs;
+	if(f_mount(&fs, "0:", 0) == FR_OK)
+	{
+		char ch[] = "ABETrludRLXY";
+
+		//Read pad state
+		u16 padInput = (~(*(u16*)0x10146000)) & 0x0FFF;
+		FIL f;
+
+		//Deduce base filename
+		u16 N = padInput;
+		char base[] = "/arm9loaderhay/------------/arm9loaderhax.bin";
+		char back[] = "/arm9loaderhay/------------/backlight";
+		char pass[] = "/arm9loaderhay/------------/password";
+		for (int i=0; i<12; i++) {
+			if (N%2) {
+				base[26-i] = ch[i];
+				back[26-i] = ch[i];
+				pass[26-i] = ch[i];
+			}
+			N = N/2;
+		}
+
+		//Password if needed
+		if (f_open(&f, pass, FA_READ | FA_OPEN_EXISTING) == FR_OK) {
+			//u32 password[] = {BUTTON_LEFT, BUTTON_RIGHT, BUTTON_DOWN, BUTTON_UP, BUTTON_A, 0};
+
+			u32 password[11]; //password can't be longer than 10, because a max is reasonably needed and no one will go over 10...
+			for (int i=0; i<11; i++) password[i] = 0;
+			char read[10];
+			UINT pass_length;
+			f_read(&f, read, 10, &pass_length);
+			f_close(&f);
+
+			//convert char like 'A' or 'B' into u32 like 0001 or 0010...
+			for (int i=0; i<pass_length; i++) {
+				char cur = read[i];
+				int index = -1;
+				for (int j=0; j<12; j++) if (cur == ch[j]) index = j;
+				if (index != -1) password[i] = 1<<index;
+			}
+
+			int n = 0;
+			int miss = 0;
+			u32 pad = 0;
+			u32 oldPad;
+			while (password[n] != 0) {
+				oldPad = pad;
+				while (pad == 0 || pad == oldPad) pad = InputWait() & 0x0FFF;
+
+				if (password[n] == pad) {
+					n++;
+				} else {
+					miss++;
+					n = 0;
+				}
+			}
+		}
+
+		if (tryLoadFile(base)) {
+			jumpAndTryEnableBL(back);
+		} else if (tryLoadFile("/arm9loaderhay/default.bin")) {
+			if(*(vu8*)CFG_BOOTENV == COLDBOOT) {
+				jumpAndTryEnableBL("/arm9loaderhay/default_bl");
+			} else { //dont enable backlight again on soft reset
+				jump();
 			}
 		}
 	}
-
-	if(isColdboot() || !loader.enableAutosoftboot || br<=4)
-	{
-		info("Wait %llu ms for Input",loader.keyDelay);
-		u32 key = WaitTimeForInput(loader.keyDelay);
-
-	    // using X-macros to generate each switch-case rules
-	    // https://en.wikibooks.org/wiki/C_Programming/Preprocessor#X-Macros
-	    #define KEY(k) \
-	    if(key & KEY_##k) \
-	        app.section = "KEY_"#k; \
-	    else
-	    #include "keys.def"
-	        app.section = "DEFAULT";
-
-		info("Key checked-selected section: [%s]",app.section);
-	}
-
-	debug("Reading current section");
-	int config_err = iniparse(handler, &app, &configFile);
-
-	switch (config_err) {
-	    case 0:
-	        if (!strlen(app.path)) {
-	        	debug("Section not found, trying to load the [DEFAULT] section");
-	            app.section = "DEFAULT";
-	            // don't need to check error again
-	            iniparse(handler, &app, &configFile);
-	            if (!strlen(app.path))
-	                panic("Section [DEFAULT] not found or \"path\" not set.");
-	        }
-	        break;
-	    case -2:
-	        // should not happen, however better be safe than sorry
-	        panic("Config file is too big.");
-	        break;
-	    default:
-	        panic("Error found in config file, error code %i",config_err);
-	        break;
-	}
-
-	checkPayload(app);
-	drawSplash(&app);
-
-	info("Loading Payload: %s",app.path);
-	if(f_open(&payload, app.path, FA_READ | FA_OPEN_EXISTING) == FR_OK)
-	{
-		debug("Reading payload at offset %i",app.offset);
-		if(app.offset)
-			f_lseek (&payload, app.offset);
-		f_read(&payload, (void*)PAYLOAD_ADDRESS, PAYLOAD_SIZE, &br);
-		f_close(&payload);
-		debug("Finished reading the payload");
-
-		if(app.fixArm9Path)
-			patchPath(br, app.path);
-
-	    if(loader.enableAutosoftboot&&isColdboot())
-	    {
-	    	if(f_open(&latestFile, latestFilePath, FA_READ | FA_WRITE | FA_CREATE_ALWAYS )==FR_OK)
-	    	{
-		    	debug("Writing latest section to file: [%s]",app.section);
-				f_puts (app.section, &latestFile);
-				f_close(&latestFile);
-			}           
-		}
-
-		debug("Closing files and unmount sd");
-		f_close(&configFile);
-		closeLogFile();
-		f_mount(&fs, "0:", 1);
-
-		debug("Configuring and jumping to the payload");
-		setScreenState(app.screenEnabled);
-		setBrightness(app.screenBrightness);
-
-		((void (*)())PAYLOAD_ADDRESS)();
-		panic("Failed to jump to the Payload");
-	}
-	panic("Failed to mount the sd-card");
 	return 0;
 }

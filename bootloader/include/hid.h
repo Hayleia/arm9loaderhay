@@ -18,6 +18,5 @@
 #define KEY_Y      (1 << 11)
 
 
-u32 WaitTimeForInput(u32 waittime);
 u32 InputWait();
 u32 GetInput();

@@ -8,7 +8,7 @@
 / Function Configurations
 /---------------------------------------------------------------------------*/
 
-#define _FS_READONLY	0
+#define _FS_READONLY	1
 /* This option switches read-only configuration. (0:Read/Write or 1:Read-only)
 /  Read-only configuration removes writing API functions, f_write(), f_sync(),
 /  f_unlink(), f_mkdir(), f_chmod(), f_rename(), f_truncate(), f_getfree()
@@ -226,7 +226,7 @@
 /  defined by _NORTC_MON, _NORTC_MDAY and _NORTC_YEAR in local time.
 /  To enable timestamp function (_FS_NORTC = 0), get_fattime() function need to be
 /  added to the project to get current time form real-time clock. _NORTC_MON,
-/  _NORTC_MDAY and _NORTC_YEAR have no effect. 
+/  _NORTC_MDAY and _NORTC_YEAR have no effect.
 /  These options have no effect at read-only configuration (_FS_READONLY = 1). */
 
 
