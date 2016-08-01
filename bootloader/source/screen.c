@@ -1,6 +1,7 @@
 #include "screen.h"
 #include "i2c.h"
 #include "constants.h"
+#include "ff.h"
 
 #include "../../arm11bg/source/arm11bg/constants.h"
 
@@ -11,7 +12,7 @@ extern u32 arm11bg_bin_size;
 ARM11_COMMANDS
 
 //got code for disabeling from CakesForeveryWan
-static volatile u32 *a11_entry = (volatile u32 *)0x1FFFFFF8;
+static volatile u32* a11_entry = (volatile u32*)0x1FFFFFF8;
 
 static a11Commands* arm11_commands=(a11Commands*)ARM11COMMAND_ADDRESS;
 static u32 a11ThreadIsRunning = 0;
@@ -101,4 +102,22 @@ void screenShutdown()
         arm11_commands->enableLCD=DISABLE_SCREEN;
         while(arm11_commands->enableLCD);
     }
+}
+
+int splash_image(char* splash_path)
+{
+	// load image in memory, doing proper error checking
+	FIL splash_file;
+	unsigned int br;
+	if(!strlen(splash_path)) return -1;
+	if(f_open(&splash_file, splash_path, FA_READ | FA_OPEN_EXISTING) != FR_OK) return -1;
+
+	//load splash to templocation in memory to prevent visible drawing
+	f_read(&splash_file, (void*)(TMPSPLASHADDRESS), 0x00600000, &br);
+
+	// copy splash image to framebuffers(in case 3d is enabled)
+	memcpy((void*)TOP_SCREENL,(void*)TMPSPLASHADDRESS,br);
+	memcpy((void*)TOP_SCREENR,(void*)TMPSPLASHADDRESS,br);
+
+	return 0;
 }

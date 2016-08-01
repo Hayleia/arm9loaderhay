@@ -2,36 +2,32 @@
 #include <stdlib.h>
 #include "sdmmc.h"
 #include "ff.h"
-//#include "config.h"
 #include "hid.h"
-//#include "log.h"
-//#include "splash.h"
 #include "helpers.h"
-//#include "constants.h"
-//#include "payload.h"
+#include "screen.h"
 
 #define PAYLOAD_ADDRESS		0x23F00000
 #define PAYLOAD_SIZE		0x00100000
-#define A11_PAYLOAD_LOC     0x1FFF8000  //keep in mind this needs to be changed in the ld script for screen_init too
+#define A11_PAYLOAD_LOC		0x1FFF8000  //keep in mind this needs to be changed in the ld script for screen_init too
 
 //used to detect if we are cold booting
 #define CFG_BOOTENV			0x10010000
 #define COLDBOOT			0
 
-static inline void jump()
+static inline void jumpAndSetBrightness(int brightness)
 {
+	setBrightness(brightness);
 	((void (*)())PAYLOAD_ADDRESS)();
 }
 
-void jumpAndTryEnableBL(char *file)
+int shouldEnableBL(char *file)
 {
 	FIL f;
-	if(f_open(&f, file, FA_READ | FA_OPEN_EXISTING) == FR_OK)
-	{
-		setBrightness(0x44);
+	if(f_open(&f, file, FA_READ | FA_OPEN_EXISTING) == FR_OK) {
 		f_close(&f);
+		return 1;
 	}
-	jump();
+	return 0;
 }
 
 int tryLoadFile(char *file)
@@ -66,14 +62,21 @@ int main()
 		char base[] = "/arm9loaderhay/------------/arm9loaderhax.bin";
 		char back[] = "/arm9loaderhay/------------/backlight";
 		char pass[] = "/arm9loaderhay/------------/password";
+		char spt1[] = "/arm9loaderhay/------------/splash_top_1";
+		char spt2[] = "/arm9loaderhay/------------/splash_top_2";
+
 		for (int i=0; i<12; i++) {
 			if (N%2) {
 				base[26-i] = ch[i];
 				back[26-i] = ch[i];
 				pass[26-i] = ch[i];
+				spt1[26-i] = ch[i];
+				spt2[26-i] = ch[i];
 			}
 			N = N/2;
 		}
+
+		if (splash_image(spt1)==0) setBrightness(0x44);
 
 		//Password if needed
 		if (f_open(&f, pass, FA_READ | FA_OPEN_EXISTING) == FR_OK) {
@@ -111,13 +114,18 @@ int main()
 			}
 		}
 
+		int brightness = 0; // so if there is no splash and no "backlight", backlight is off
+		if (splash_image(spt2)==0) brightness = 0x44;
+
 		if (tryLoadFile(base)) {
-			jumpAndTryEnableBL(back);
+			if (shouldEnableBL(back)) brightness = 0x44;
+			jumpAndSetBrightness(brightness);
 		} else if (tryLoadFile("/arm9loaderhay/default.bin")) {
 			if(*(vu8*)CFG_BOOTENV == COLDBOOT) {
-				jumpAndTryEnableBL("/arm9loaderhay/default_bl");
+				if (shouldEnableBL("/arm9loaderhay/default_bl")) brightness = 0x44;
+				jumpAndSetBrightness(brightness);
 			} else { //dont enable backlight again on soft reset
-				jump();
+				jumpAndSetBrightness(brightness);
 			}
 		}
 	}
